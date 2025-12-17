@@ -8,7 +8,7 @@ It will load all your fonts and images and textures and display them on top of y
 
 # Whats the quickest way i can play around with this
 1. clone the project
-2. download noesis studio
+2. download noesis studio [https://www.noesisengine.com/studio/](https://www.noesisengine.com/studio/)
 3. open the noesis project in GMNoesis/datafiles/Screens
 4. edit the ui
 5. run the gamemaker project and enjoy the ui you made
