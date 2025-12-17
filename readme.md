@@ -6,6 +6,13 @@ GMNoesis, pronounce Gee'm'no'yee'sis', is a GameMaker extension. Currently only 
 # Whats the state right now? 
 It will load all your fonts and images and textures and display them on top of your gamemaker game. you can use mouse and keyboard and gamepad. the Studio's Interaction events seem to be broken. 
 
+# Whats the quickest way i can play around with this
+1. clone the project
+2. download noesis studio
+3. open the noesis project in GMNoesis/datafiles/Screens
+4. edit the ui
+5. run the gamemaker project and enjoy the ui you made
+
 ## How to work on the DLL 
 
 1. Install CMake
