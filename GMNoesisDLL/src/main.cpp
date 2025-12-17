@@ -18,9 +18,13 @@
 #include <NsGui/FrameworkElement.h>
 #include <string>
 #include <NsCore/HighResTimer.h>
+#include <mutex>
+
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
+
+std::atomic<bool> is_ready{false};
 
 static HWND noesis_hwnd = nullptr;
 static HWND game_hwnd = nullptr;
@@ -37,26 +41,24 @@ static int g_height = 720;
 static Noesis::Ptr<Noesis::IView> view;
 static Noesis::Ptr<Noesis::RenderDevice> render_device;
 
+static std::mutex view_mutex;
+
 static void render_frame(double current_time)
 {
-    static bool is_first_time = true;
-
-    if (is_first_time)
-    {
-        is_first_time = false;
-        render_frame(0);
-    }
-
-    if (!view->Update(current_time))
+    std::lock_guard<std::mutex> lock(view_mutex);
+    
+    if (view && !view->Update(current_time))
     {
         return;
     }
 
-    view->GetRenderer()->UpdateRenderTree();
-    view->GetRenderer()->RenderOffscreen();
+    if (view)
+    {
+        view->GetRenderer()->UpdateRenderTree();
+        view->GetRenderer()->RenderOffscreen();
 
-    d3d_context->OMSetRenderTargets(1, &render_target_view, depth_stencil_view);
-
+        d3d_context->OMSetRenderTargets(1, &render_target_view, depth_stencil_view);
+    }
     constexpr float clear_color[4] = {0, 0, 0, 0};
     d3d_context->ClearRenderTargetView(render_target_view, clear_color);
     if (depth_stencil_view)
@@ -67,7 +69,11 @@ static void render_frame(double current_time)
     D3D11_VIEWPORT viewport = {0, 0, (float)(g_width), (float)(g_height), 0.0f, 1.0f};
     d3d_context->RSSetViewports(1, &viewport);
 
-    view->GetRenderer()->Render();
+    if (view)
+    {
+        view->GetRenderer()->Render();
+    }
+
     if (FAILED(swap_chain->Present(1, 0)))
     {
         std::cout << "swap chain failed\n";
@@ -76,6 +82,7 @@ static void render_frame(double current_time)
 
 LRESULT CALLBACK overlay_proc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
 {
+    
     switch (msg)
     {
     case WM_DESTROY:
@@ -244,7 +251,8 @@ static void overlay_thread()
     d3d_device->CreateTexture2D(&depth_desc, nullptr, &depth_tex);
     d3d_device->CreateDepthStencilView(depth_tex, nullptr, &depth_stencil_view);
     depth_tex->Release();
-
+    render_device = NoesisApp::D3D11Factory::CreateDevice(d3d_context, false);
+    
     Noesis::GUI::Init();
     Noesis::GUI::SetXamlProvider(Noesis::MakePtr<NoesisApp::LocalXamlProvider>("./Screens"));
     Noesis::GUI::SetFontProvider(Noesis::MakePtr<NoesisApp::LocalFontProvider>("./Screens"));
@@ -255,8 +263,8 @@ static void overlay_thread()
 
     Noesis::GUI::LoadApplicationResources(NoesisApp::Theme::DarkBlue());
 
-    render_device = NoesisApp::D3D11Factory::CreateDevice(d3d_context, false);
-    
+
+    is_ready = true;
     MSG msg = {};
     const uint64_t start_ticks = Noesis::HighResTimer::Ticks();
 
@@ -270,8 +278,11 @@ static void overlay_thread()
         }
 
         render_frame(Noesis::HighResTimer::Seconds(Noesis::HighResTimer::Ticks() - start_ticks));
+        
     }
 }
+
+static std::thread t;
 
 extern "C" __declspec(dllexport)
 double gm_function_initialize(char* ptr)
@@ -286,9 +297,9 @@ double gm_function_initialize(char* ptr)
         g_height = rect.bottom - rect.top;
     }
 
-    std::thread t(overlay_thread);
+    t = std::thread(overlay_thread);
     t.detach();
-
+    
     return 1;
 }
 
@@ -297,9 +308,11 @@ double gm_function_load_xaml(const char* filename)
 {
     if (Noesis::Ptr<Noesis::FrameworkElement> xaml = Noesis::GUI::LoadXaml<Noesis::FrameworkElement>(filename))
     {
+        std::lock_guard<std::mutex> lock(view_mutex); 
         view = Noesis::GUI::CreateView(xaml);
         view->SetSize(g_width, g_height);
         view->GetRenderer()->Init(render_device);
+        view->Activate();
         return 1;
     }
 
@@ -316,4 +329,10 @@ double gm_function_unload_xaml(char* ptr)
     
     view = nullptr;
     return 1;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_is_ready()
+{
+   return is_ready;
 }
