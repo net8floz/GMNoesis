@@ -1,0 +1,36 @@
+
+# Ignore CMake build artifacts
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Ignore Visual Studio solution and project files
+*.sln
+*.vcxproj
+*.vcxproj.*
+*.user
+*.filters
+
+# Ignore build outputs
+Build/
+Debug/
+Release/
+x64/
+bin/
+obj/
+*.exe
+*.dll
+*.lib
+*.pdb
+
+# Ignore generated logs
+*.log
+
+# Ignore generated packages
+*.zip
+*.
+
+ThirdParty/
+.vs
+.idea

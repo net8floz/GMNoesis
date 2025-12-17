@@ -1,0 +1,5 @@
+<Project>
+  <Assembly>ReachForTheSkiis</Assembly>
+  <DefaultDataNamespace>ReachForTheSkiis</DefaultDataNamespace>
+  <StartupDocument>MainPage.xaml</StartupDocument>
+</Project>
