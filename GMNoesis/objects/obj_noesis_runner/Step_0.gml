@@ -1,1 +1,0 @@
-vm.set_name(current_time);

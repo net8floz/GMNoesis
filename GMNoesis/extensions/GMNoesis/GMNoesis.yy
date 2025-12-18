@@ -17,8 +17,8 @@
   "extensionVersion":"0.0.1",
   "files":[
     {"$GMExtensionFile":"v1","%Name":"","constants":[],"copyToTargets":-1,"filename":"GMNoesis.pdb","final":"","functions":[],"init":"","kind":4,"name":"","origname":"","ProxyFiles":[],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
-    {"$GMExtensionFile":"v1","%Name":"","constants":[],"copyToTargets":3035426178912485610,"filename":"GMNoesis.dll","final":"","functions":[
-        {"$GMExtensionFunction":"","%Name":"noesis_initialize","argCount":0,"args":[1,],"documentation":"/// @param argument0 window_handle","externalName":"gm_function_initialize","help":"","hidden":false,"kind":1,"name":"noesis_initialize","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
+    {"$GMExtensionFile":"v1","%Name":"","constants":[],"copyToTargets":3035426178912485610,"filename":"GMNoesis.dll","final":"noesis_cleanup","functions":[
+        {"$GMExtensionFunction":"","%Name":"noesis_initialize","argCount":0,"args":[1,1,1,1,],"documentation":"/// @param argument0 window_handle\r\n/// @param argument1 fps_limit\r\n/// @param argument1 read_buffer\r\n/// @param argument1 write_buffer","externalName":"gm_function_initialize","help":"","hidden":true,"kind":1,"name":"noesis_initialize","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
         {"$GMExtensionFunction":"","%Name":"noesis_load_view","argCount":0,"args":[1,],"documentation":"/// @param argument0 filename","externalName":"gm_function_load_xaml","help":"","hidden":false,"kind":1,"name":"noesis_load_view","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
         {"$GMExtensionFunction":"","%Name":"noesis_cleanup","argCount":0,"args":[],"documentation":"","externalName":"gm_function_cleanup","help":"","hidden":true,"kind":1,"name":"noesis_cleanup","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
         {"$GMExtensionFunction":"","%Name":"noesis_unload_view","argCount":0,"args":[],"documentation":"","externalName":"gm_function_unload_xaml","help":"","hidden":false,"kind":1,"name":"noesis_unload_view","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
@@ -34,6 +34,8 @@
         {"$GMExtensionFunction":"","%Name":"noesis_set_view_vm","argCount":0,"args":[2,],"documentation":"","externalName":"gm_function_set_view_vm","help":"","hidden":false,"kind":1,"name":"noesis_set_view_vm","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
         {"$GMExtensionFunction":"","%Name":"noesis_vm_set_string","argCount":0,"args":[2,1,1,],"documentation":"","externalName":"gm_function_vm_set_string","help":"","hidden":false,"kind":1,"name":"noesis_vm_set_string","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
         {"$GMExtensionFunction":"","%Name":"noesis_vm_set_number","argCount":0,"args":[1,1,2,],"documentation":"","externalName":"gm_function_vm_set_number","help":"","hidden":true,"kind":1,"name":"noesis_vm_set_number","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
+        {"$GMExtensionFunction":"","%Name":"noesis_vm_clear_write_buffer","argCount":0,"args":[],"documentation":"","externalName":"gm_function_vm_clear_write_buffer","help":"","hidden":false,"kind":1,"name":"noesis_vm_clear_write_buffer","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
+        {"$GMExtensionFunction":"","%Name":"noesis_vm_prepare_write_buffer_for_reading","argCount":0,"args":[],"documentation":"","externalName":"gm_function_vm_prepare_write_buffer","help":"","hidden":false,"kind":1,"name":"noesis_vm_prepare_write_buffer_for_reading","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
       ],"init":"","kind":1,"name":"","origname":"","ProxyFiles":[],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
     {"$GMExtensionFile":"v1","%Name":"","constants":[],"copyToTargets":-1,"filename":"NoesisApp.pdb","final":"","functions":[],"init":"","kind":4,"name":"","origname":"","ProxyFiles":[],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
     {"$GMExtensionFile":"v1","%Name":"","constants":[],"copyToTargets":-1,"filename":"NoesisApp.dll","final":"","functions":[],"init":"","kind":1,"name":"","origname":"","ProxyFiles":[],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
@@ -66,8 +68,8 @@
   "optionsFile":"options.json",
   "packageId":"",
   "parent":{
-    "name":"NoesisGM",
-    "path":"NoesisGM.yyp",
+    "name":"GMNoesis",
+    "path":"GMNoesis.yyp",
   },
   "productId":"",
   "resourceType":"GMExtension",

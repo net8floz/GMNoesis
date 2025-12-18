@@ -5,7 +5,12 @@ enum GMNoesisVMType
 }
 
 function GMNoesis() {
+	static buffer_size = 1024 * 1024 * 10;
+	static read_buffer = buffer_create(buffer_size, buffer_fixed, 1);
+	static write_buffer = buffer_create(buffer_size, buffer_fixed, 1);
+	
 	static defined_types = {};
+	static vm_collection = {};
 	
 	static assert = function(_cnd) {
 		if (!_cnd) {
@@ -40,6 +45,13 @@ function GMNoesis() {
 	
 		GMNoesis.defined_types[$ _type_name] = _definition;
 	}
+	
+	noisis_loicense(
+		extension_get_option_value("GMNoesis", "loicense_name"),
+		extension_get_option_value("GMNoesis", "loicense_key")
+	);
+
+	noesis_initialize(window_handle(), 120, buffer_get_address(read_buffer),  buffer_get_address(write_buffer));
 }
 
 function GMNoesisVM(_type_name, _definition) constructor {
@@ -50,6 +62,10 @@ function GMNoesisVM(_type_name, _definition) constructor {
 	
 	// todo: must destroy VMs
 	handle = noesis_create_vm(_type_name);
+	
+	// todo: weak pointers
+	GMNoesis.vm_collection[$ handle] = self;
+	
 	var _this = self;
 	var _names = struct_get_names(_definition);
 	for (var _i = 0; _i < array_length(_names); _i++) {

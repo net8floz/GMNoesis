@@ -2,7 +2,31 @@
 #include "DynamicViewModel.h"
 #include <NsCore/TypeProperty.h>
 
-DynamicObject::DynamicObject(const Noesis::TypeClass* in_type) : type(in_type) {}
+#include "VMPropertyChangedMessage.h"
+
+DynamicObject::DynamicObject(const uint32_t in_handle, const Noesis::TypeClass* in_type)
+    : handle(in_handle)
+    , type(in_type)
+{
+    PropertyChanged() += [this](Noesis::BaseComponent* sender, const Noesis::PropertyChangedEventArgs& args)
+    {
+        const char* changed_property = args.propertyName.Str();
+        
+        const auto* obj = dynamic_cast<DynamicObject*>(sender);
+        if (obj->b_skip_events)
+        {
+            return;
+        }
+        
+        const Noesis::Ptr<BaseComponent> current_value = obj->GetValue(changed_property);
+        
+        VMPropertyChangedMessage::write_to_buffer({
+            handle,
+            changed_property,
+            current_value
+        });
+    };
+}
 
 const Noesis::TypeClass* DynamicObject::GetClassType() const
 {
@@ -13,6 +37,14 @@ void DynamicObject::SetValue(const std::string& name, Noesis::Ptr<BaseComponent>
 {
     values[name] = value;
     OnPropertyChanged(name.c_str());
+}
+
+void DynamicObject::SetValueNoEvent(const std::string& name, Noesis::Ptr<BaseComponent> value)
+{
+    b_skip_events = true;
+    values[name] = value;
+    OnPropertyChanged(name.c_str());
+    b_skip_events = false;
 }
 
 Noesis::Ptr<Noesis::BaseComponent> DynamicObject::GetValue(const std::string& name) const

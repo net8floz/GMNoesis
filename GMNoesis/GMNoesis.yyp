@@ -1,6 +1,6 @@
 {
   "$GMProject":"v1",
-  "%Name":"NoesisGM",
+  "%Name":"GMNoesis",
   "AudioGroups":[
     {"$GMAudioGroup":"v1","%Name":"audiogroup_default","exportDir":"","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
   ],
@@ -69,10 +69,11 @@
   "MetaData":{
     "IDEVersion":"2024.14.2.212",
   },
-  "name":"NoesisGM",
+  "name":"GMNoesis",
   "resources":[
     {"id":{"name":"GMNoesis","path":"extensions/GMNoesis/GMNoesis.yy",},},
     {"id":{"name":"obj_noesis_runner","path":"objects/obj_noesis_runner/obj_noesis_runner.yy",},},
+    {"id":{"name":"obj_test_vm","path":"objects/obj_test_vm/obj_test_vm.yy",},},
     {"id":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
     {"id":{"name":"GMNoesisGML","path":"scripts/GMNoesisGML/GMNoesisGML.yy",},},
     {"id":{"name":"TestVM","path":"scripts/TestVM/TestVM.yy",},},

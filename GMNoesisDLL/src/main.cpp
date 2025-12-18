@@ -23,6 +23,7 @@
 #include <unordered_map>
 
 #include "DynamicViewModel.h"
+#include "VMPropertyChangedMessage.h"
 
 static HWND noesis_hwnd = nullptr;
 static HWND game_hwnd = nullptr;
@@ -237,15 +238,17 @@ static void overlay_thread()
     }
 }
 
-static std::thread t;
-
 extern "C" void NsRegisterReflectionAppInteractivity();
 extern "C" void NsInitPackageAppInteractivity();
 
 extern "C" __declspec(dllexport)
-double gm_function_initialize(char* ptr)
+double gm_function_initialize(char* ptr, const double fps, char *event_read_buffer, char* event_write_buffer, const double buffer_size)
 {
     game_hwnd = (HWND)ptr;
+
+    VMPropertyChangedMessage::buffer_size = static_cast<size_t>(buffer_size);
+    VMPropertyChangedMessage::out_buffer_start = event_write_buffer;
+    VMPropertyChangedMessage::reset_write_buffer();
 
     HWND parent_hwnd = GetParent(game_hwnd);
     RECT rect;
@@ -273,13 +276,13 @@ double gm_function_initialize(char* ptr)
     Noesis::GUI::LoadApplicationResources(NoesisApp::Theme::DarkBlue());
     start_ticks = Noesis::HighResTimer::Ticks();
     
-    DWORD gameThreadId = GetWindowThreadProcessId(game_hwnd, NULL);
-    hHook = SetWindowsHookEx(WH_GETMESSAGE, hook_proc, NULL, gameThreadId);
+    DWORD gameThreadId = GetWindowThreadProcessId(game_hwnd, nullptr);
+    hHook = SetWindowsHookEx(WH_GETMESSAGE, hook_proc, nullptr, gameThreadId);
 
-    SetTimer(game_hwnd, 1, 1, NULL);
+    SetTimer(game_hwnd, 1, 1, nullptr);
     
-    t = std::thread(overlay_thread);
-    t.detach();
+    std::thread thread(overlay_thread);
+    thread.detach();
 
     return 1;
 }
@@ -291,10 +294,7 @@ double gm_function_load_xaml(const char* filename)
     {
         view = Noesis::GUI::CreateView(xaml);
         view->SetSize(g_width, g_height);
-        
-
-
-       
+        view->Activate();
         return 1;
     } else
     {
@@ -391,8 +391,8 @@ double gm_function_create_vm(char* type_name)
         return -1;
     }
 
-    DynamicObject* instance = new DynamicObject(it->second);
-    int id = g_next_id++;
+    const int id = g_next_id++;
+    DynamicObject* instance = new DynamicObject(id, it->second);
     g_vm_instances[id] = instance;
 
     return static_cast<double>(id);
@@ -437,18 +437,8 @@ double gm_function_vm_set_string(double id, char* property_name, char* value)
     if (it != g_vm_instances.end())
     {
         DynamicObject* vm = it->second;
-        const Noesis::TypeClass* type_class = vm->GetClassType();
-        Noesis::Symbol prop_name(property_name);
-        const Noesis::TypeProperty* prop = type_class->FindProperty(prop_name);
-
-        if (prop)
-        {
-            if (prop->GetContentType() == Noesis::TypeOf<Noesis::String>())
-            {
-                vm->SetValue(property_name, Noesis::Boxing::Box<Noesis::String>(value));
-            }
-            return 1;
-        }
+        vm->SetValueNoEvent(property_name, Noesis::Boxing::Box<Noesis::String>(value));
+        return 1;
     }
     return 0;
 }
@@ -461,18 +451,21 @@ double gm_function_vm_set_number(double id, char* property_name, char* value)
     if (it != g_vm_instances.end())
     {
         DynamicObject* vm = it->second;
-        const Noesis::TypeClass* type_class = vm->GetClassType();
-        Noesis::Symbol prop_name(property_name);
-        const Noesis::TypeProperty* prop = type_class->FindProperty(prop_name);
-
-        if (prop)
-        {
-            if (prop->GetContentType() == Noesis::TypeOf<float>())
-            {
-                vm->SetValue(property_name, Noesis::Boxing::Box<float>(std::stof(value)));
-            }
-            return 1;
-        }
+        vm->SetValueNoEvent(property_name, Noesis::Boxing::Box<float>(std::stof(value)));
     }
     return 0;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_vm_clear_write_buffer()
+{
+    VMPropertyChangedMessage::reset_write_buffer();
+    return 1;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_vm_prepare_write_buffer()
+{
+    VMPropertyChangedMessage::prepare_write_buffer_for_reading();
+    return VMPropertyChangedMessage::out_buffer_current == nullptr ? 0 : 1;
 }

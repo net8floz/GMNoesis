@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"GMNoesisGML",
   "parent":{
-    "name":"NoesisGM",
-    "path":"NoesisGM.yyp",
+    "name":"GMNoesis",
+    "path":"GMNoesis.yyp",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
