@@ -42,6 +42,12 @@ NoesisApp::BehaviorCollection* behavior_collection;
 
 static void render_frame()
 {
+    if (view)
+    {
+        view->GetRenderer()->UpdateRenderTree();
+        view->GetRenderer()->RenderOffscreen();
+    }
+    
     d3d_context->OMSetRenderTargets(1, &render_target_view, depth_stencil_view);
     
     constexpr float clear_color[4] = {0, 0,0, 0};
@@ -56,7 +62,6 @@ static void render_frame()
 
     if (view)
     {
-        view->GetRenderer()->RenderOffscreen();
         view->GetRenderer()->Render();
     }
 
@@ -134,7 +139,6 @@ LRESULT CALLBACK hook_proc(int n_code, WPARAM w_param, LPARAM l_param)
             if (view)
             {
                 view->Update(time);
-                view->GetRenderer()->UpdateRenderTree();
             }
         }
     }
