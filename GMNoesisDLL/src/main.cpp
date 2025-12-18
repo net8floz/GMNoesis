@@ -23,7 +23,7 @@
 #include <unordered_map>
 
 #include "DynamicViewModel.h"
-#include "VMPropertyChangedMessage.h"
+#include "VMWriteMessage.h"
 
 static HWND noesis_hwnd = nullptr;
 static HWND game_hwnd = nullptr;
@@ -246,9 +246,9 @@ double gm_function_initialize(char* ptr, const double fps, char *event_read_buff
 {
     game_hwnd = (HWND)ptr;
 
-    VMPropertyChangedMessage::buffer_size = static_cast<size_t>(buffer_size);
-    VMPropertyChangedMessage::out_buffer_start = event_write_buffer;
-    VMPropertyChangedMessage::reset_write_buffer();
+    VMWriteMessage::buffer_size = static_cast<size_t>(buffer_size);
+    VMWriteMessage::out_buffer_start = event_write_buffer;
+    VMWriteMessage::reset_write_buffer();
 
     HWND parent_hwnd = GetParent(game_hwnd);
     RECT rect;
@@ -333,6 +333,7 @@ struct VMTypeBuilderState
 {
     std::string type_name;
     std::vector<std::pair<std::string, const Noesis::Type*>> properties;
+    std::vector<std::pair<std::string, const Noesis::Type*>> commands;
 };
 
 static VMTypeBuilderState g_builder_state;
@@ -344,34 +345,43 @@ double gm_function_create_vm_type_begin(char* type_name)
 {
     g_builder_state.type_name = type_name;
     g_builder_state.properties.clear();
+    g_builder_state.commands.clear();
     return 1;
 }
 
-extern "C" __declspec(dllexport)
-double gm_function_create_vm_type_add_string(char* property_name)
+enum class VMParamType 
 {
-    g_builder_state.properties.push_back({property_name, Noesis::TypeOf<Noesis::String>()});
-    return 1;
-}
+    string,
+    number
+};
+ 
+extern "C" __declspec(dllexport)
+double gm_function_create_vm_type_add_definition(char* property_name, double type_enum, double is_command)
+{
+    const VMParamType type = static_cast<VMParamType>(static_cast<int>(type_enum));
 
-extern "C" __declspec(dllexport)
-double gm_function_create_vm_type_add_bool(char* property_name)
-{
-    g_builder_state.properties.push_back({property_name, Noesis::TypeOf<bool>()});
-    return 1;
-}
+    std::vector<std::pair<std::string, const Noesis::Type*>>& collection =
+        static_cast<bool>(is_command)
+        ? g_builder_state.commands
+        : g_builder_state.properties;
 
-extern "C" __declspec(dllexport)
-double gm_function_create_vm_type_add_number(char* property_name)
-{
-    g_builder_state.properties.push_back({property_name, Noesis::TypeOf<float>()});
+    switch (type)
+    {
+        case VMParamType::string:
+            collection.emplace_back(property_name, Noesis::TypeOf<Noesis::String>());
+            break;
+        case VMParamType::number:
+            collection.emplace_back(property_name, Noesis::TypeOf<float>());
+        break;
+    }
+
     return 1;
 }
 
 extern "C" __declspec(dllexport)
 double gm_function_create_vm_type_end()
 {
-    g_last_created_type = DynamicObject::create_dynamic_type(g_builder_state.type_name, g_builder_state.properties);
+    g_last_created_type = DynamicObject::create_dynamic_type(g_builder_state.type_name, g_builder_state.properties, g_builder_state.commands);
     if (g_last_created_type)
     {
         g_registered_types.emplace(g_builder_state.type_name, g_last_created_type);
@@ -392,7 +402,8 @@ double gm_function_create_vm(char* type_name)
     }
 
     const int id = g_next_id++;
-    DynamicObject* instance = new DynamicObject(id, it->second);
+    DynamicObject* instance = new DynamicObject(id, type_name, it->second);
+    instance->register_commands();
     g_vm_instances[id] = instance;
 
     return static_cast<double>(id);
@@ -459,13 +470,13 @@ double gm_function_vm_set_number(double id, char* property_name, char* value)
 extern "C" __declspec(dllexport)
 double gm_function_vm_clear_write_buffer()
 {
-    VMPropertyChangedMessage::reset_write_buffer();
+    VMWriteMessage::reset_write_buffer();
     return 1;
 }
 
 extern "C" __declspec(dllexport)
 double gm_function_vm_prepare_write_buffer()
 {
-    VMPropertyChangedMessage::prepare_write_buffer_for_reading();
-    return VMPropertyChangedMessage::out_buffer_current == nullptr ? 0 : 1;
+    VMWriteMessage::prepare_write_buffer_for_reading();
+    return VMWriteMessage::out_buffer_current == nullptr ? 0 : 1;
 }

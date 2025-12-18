@@ -26,18 +26,24 @@ function GMNoesis() {
 		var _names = struct_get_names(_definition);
 		for (var _i = 0; _i < array_length(_names); _i++) {
 			var _name = _names[_i];
+			
+			if (_name == "commands") {
+				continue;	
+			}
+			
 			var _type = _definition[$ _name];
 		
-			switch (_type) {
-				case GMNoesisVMType.number:
-					noesis_vm_type_add_number(_name);
-					break;
-				case GMNoesisVMType.string:
-					noesis_vm_type_add_string(_name);
-					break;
-				default:
-					throw "unknown type";
-					break;
+			noesis_vm_type_add_definition(_name, _type,  /* is_command */ false);
+		}
+		
+		if (is_struct(_definition[$ "commands"])) {
+			var _commands = _definition.commands;
+			
+			var _names = struct_get_names(_commands);
+			for (var _i = 0; _i < array_length(_names); _i++) {
+				var _name = _names[_i];
+				var _type = _commands[$ _name];
+				noesis_vm_type_add_definition(_name, _type,  /* is_command */ true);
 			}
 		}
 	
@@ -57,6 +63,7 @@ function GMNoesis() {
 function GMNoesisVM(_type_name, _definition) constructor {
 	definition = _definition;
 	type_name = _type_name;
+	
 	
 	GMNoesis.noesis_define_vm(_type_name, _definition);
 	

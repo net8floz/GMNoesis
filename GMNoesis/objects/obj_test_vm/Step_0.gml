@@ -1,1 +1,0 @@
-show_debug_message($"ui value is: {vm.name}");

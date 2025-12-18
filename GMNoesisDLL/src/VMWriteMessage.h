@@ -8,9 +8,10 @@ namespace Noesis
     class BaseComponent;
 }
 
-struct VMPropertyChangedMessage
+struct VMWriteMessage
 {
     uint32_t id = 0;
+    bool is_event = false;
     std::string property_name;
     Noesis::Ptr<Noesis::BaseComponent> boxed_value;
 
@@ -20,5 +21,5 @@ struct VMPropertyChangedMessage
 
     static void reset_write_buffer();
     static void prepare_write_buffer_for_reading();
-    static void write_to_buffer(const VMPropertyChangedMessage& msg);
+    static void write_to_buffer(const VMWriteMessage& msg);
 };
