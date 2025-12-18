@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"TestVM",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"TestVM",
+  "parent":{
+    "name":"NoesisGM",
+    "path":"NoesisGM.yyp",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

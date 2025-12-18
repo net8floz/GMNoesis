@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"GMNoesisGML",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"GMNoesisGML",
+  "parent":{
+    "name":"NoesisGM",
+    "path":"NoesisGM.yyp",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

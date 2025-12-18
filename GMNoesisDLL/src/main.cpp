@@ -19,6 +19,10 @@
 #include <NsApp/Interaction.h>
 #include <string>
 #include <iostream>
+#include <vector>
+#include <unordered_map>
+
+#include "DynamicViewModel.h"
 
 static HWND noesis_hwnd = nullptr;
 static HWND game_hwnd = nullptr;
@@ -42,6 +46,17 @@ NoesisApp::BehaviorCollection* behavior_collection;
 
 static void render_frame()
 {
+    static bool view_init = false;
+    
+    if (!view_init)
+    {
+        if (view)
+        {
+            view->GetRenderer()->Init(render_device);
+            view_init = true;
+        }
+    }
+    
     if (view)
     {
         view->GetRenderer()->UpdateRenderTree();
@@ -206,7 +221,6 @@ static void overlay_thread()
     depth_tex->Release();
 
     render_device = NoesisApp::D3D11Factory::CreateDevice(d3d_context, false);
-    view->GetRenderer()->Init(render_device);
     
     MSG msg = {};
 
@@ -277,8 +291,14 @@ double gm_function_load_xaml(const char* filename)
     {
         view = Noesis::GUI::CreateView(xaml);
         view->SetSize(g_width, g_height);
-        view->Activate();
+        
+
+
+       
         return 1;
+    } else
+    {
+        std::cout << "Failed to load Xaml\n";
     }
 
     return 0;
@@ -309,3 +329,150 @@ double gm_function_set_license(char* name, char* key)
     return 1;
 }
 
+struct VMTypeBuilderState
+{
+    std::string type_name;
+    std::vector<std::pair<std::string, const Noesis::Type*>> properties;
+};
+
+static VMTypeBuilderState g_builder_state;
+static const Noesis::TypeClass* g_last_created_type = nullptr;
+static std::unordered_map<std::string, const Noesis::TypeClass*> g_registered_types;
+
+extern "C" __declspec(dllexport)
+double gm_function_create_vm_type_begin(char* type_name)
+{
+    g_builder_state.type_name = type_name;
+    g_builder_state.properties.clear();
+    return 1;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_create_vm_type_add_string(char* property_name)
+{
+    g_builder_state.properties.push_back({property_name, Noesis::TypeOf<Noesis::String>()});
+    return 1;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_create_vm_type_add_bool(char* property_name)
+{
+    g_builder_state.properties.push_back({property_name, Noesis::TypeOf<bool>()});
+    return 1;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_create_vm_type_add_number(char* property_name)
+{
+    g_builder_state.properties.push_back({property_name, Noesis::TypeOf<float>()});
+    return 1;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_create_vm_type_end()
+{
+    g_last_created_type = DynamicObject::create_dynamic_type(g_builder_state.type_name, g_builder_state.properties);
+    if (g_last_created_type)
+    {
+        g_registered_types.emplace(g_builder_state.type_name, g_last_created_type);
+    }
+    return g_last_created_type ? 1 : 0;
+}
+
+static std::unordered_map<int, DynamicObject*> g_vm_instances;
+static int g_next_id = 1;
+
+extern "C" __declspec(dllexport)
+double gm_function_create_vm(char* type_name)
+{
+    auto it = g_registered_types.find(type_name);
+    if (it == g_registered_types.end())
+    {
+        return -1;
+    }
+
+    DynamicObject* instance = new DynamicObject(it->second);
+    int id = g_next_id++;
+    g_vm_instances[id] = instance;
+
+    return static_cast<double>(id);
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_destroy_vm(double id)
+{
+    int int_id = static_cast<int>(id);
+    auto it = g_vm_instances.find(int_id);
+    if (it != g_vm_instances.end())
+    {
+        delete it->second;
+        g_vm_instances.erase(it);
+        return 1;
+    }
+    return 0;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_set_view_vm(double id)
+{
+    int int_id = static_cast<int>(id);
+    auto it = g_vm_instances.find(int_id);
+    if (it != g_vm_instances.end())
+    {
+        if (view)
+        {
+            view->GetContent()->SetDataContext(it->second);
+            view->Activate();
+            return 1;
+        }
+    }
+    return 0;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_vm_set_string(double id, char* property_name, char* value)
+{
+    int int_id = static_cast<int>(id);
+    auto it = g_vm_instances.find(int_id);
+    if (it != g_vm_instances.end())
+    {
+        DynamicObject* vm = it->second;
+        const Noesis::TypeClass* type_class = vm->GetClassType();
+        Noesis::Symbol prop_name(property_name);
+        const Noesis::TypeProperty* prop = type_class->FindProperty(prop_name);
+
+        if (prop)
+        {
+            if (prop->GetContentType() == Noesis::TypeOf<Noesis::String>())
+            {
+                vm->SetValue(property_name, Noesis::Boxing::Box<Noesis::String>(value));
+            }
+            return 1;
+        }
+    }
+    return 0;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_vm_set_number(double id, char* property_name, char* value)
+{
+    int int_id = static_cast<int>(id);
+    auto it = g_vm_instances.find(int_id);
+    if (it != g_vm_instances.end())
+    {
+        DynamicObject* vm = it->second;
+        const Noesis::TypeClass* type_class = vm->GetClassType();
+        Noesis::Symbol prop_name(property_name);
+        const Noesis::TypeProperty* prop = type_class->FindProperty(prop_name);
+
+        if (prop)
+        {
+            if (prop->GetContentType() == Noesis::TypeOf<float>())
+            {
+                vm->SetValue(property_name, Noesis::Boxing::Box<float>(std::stof(value)));
+            }
+            return 1;
+        }
+    }
+    return 0;
+}
