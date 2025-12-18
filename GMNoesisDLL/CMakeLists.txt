@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SOURCES
     src/main.cpp
+    src/App.Interactivity.cpp
 )
 add_library(GMNoesis SHARED ${SOURCES})
 
@@ -30,6 +31,7 @@ target_include_directories(GMNoesis PRIVATE
     ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/Src/Packages/App/ApplicationLauncher/include
     ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/Src/Packages/App/Theme/include
     ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/Src/Packages/App/Providers/include
+    ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/Src/Packages/App/Interactivity/include
     ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/Src/Packages/Render/D3D11RenderDevice/include
     ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/Src/Packages/Render/RenderContext/include
 )

@@ -7,16 +7,16 @@
   <Page.Resources>
     <Storyboard x:Key="Storyboard0" RepeatBehavior="Forever">
       <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Button0" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)">
-        <LinearDoubleKeyFrame KeyTime="00:00:00" Value="376.99988"/>
-        <LinearDoubleKeyFrame KeyTime="00:00:02" Value="-148.43555"/>
+        <SplineDoubleKeyFrame KeySpline="0.05,0.93,0.8,0.1" Value="376.99988" KeyTime="0:0:0"/>
+        <SplineDoubleKeyFrame KeySpline="0.05,0.93,0.8,0.1" Value="-148.43555" KeyTime="0:0:2"/>
       </DoubleAnimationUsingKeyFrames>
       <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Button0" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)">
-        <LinearDoubleKeyFrame KeyTime="00:00:00" Value="-82.756134"/>
-        <LinearDoubleKeyFrame KeyTime="00:00:02" Value="78.81525"/>
+        <SplineDoubleKeyFrame KeySpline="0.05,0.93,0.8,0.1" Value="-82.756134" KeyTime="0:0:0"/>
+        <SplineDoubleKeyFrame KeySpline="0.05,0.93,0.8,0.1" Value="78.81525" KeyTime="0:0:2"/>
       </DoubleAnimationUsingKeyFrames>
       <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Button0" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[2].(RotateTransform.Angle)">
-        <LinearDoubleKeyFrame KeyTime="00:00:00" Value="29"/>
-        <LinearDoubleKeyFrame KeyTime="00:00:02" Value="164"/>
+        <SplineDoubleKeyFrame KeySpline="0.05,0.93,0.8,0.1" Value="29" KeyTime="0:0:0"/>
+        <SplineDoubleKeyFrame KeySpline="0.05,0.93,0.8,0.1" Value="164" KeyTime="0:0:2"/>
       </DoubleAnimationUsingKeyFrames>
     </Storyboard>
   </Page.Resources>
@@ -40,10 +40,10 @@
         </VisualStateGroup.Transitions>
       </VisualStateGroup>
     </VisualStateManager.VisualStateGroups>
-    <TextBlock TextWrapping="Wrap" Text="My Super Cool Game" Canvas.Left="58.638733" Canvas.Top="36.40677" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="74" Foreground="#FFFFFFFF" StrokeThickness="7" Stroke="#FFC00505"/>
+    <TextBlock TextWrapping="Wrap" Text="My Super Cool Game" Canvas.Left="58.638733" Canvas.Top="36.40677" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505"/>
     <Image Canvas.Left="521.3109" Canvas.Top="127.64676" Source="promo_skiier1.Copy.png" Width="498" Height="438" BitmapScalingMode="NearestNeighbor"/>
-    <Image Height="405" Width="835" Canvas.Left="-10.876282" Canvas.Top="186.40729" Source="image.png"/>
-    <Button x:Name="Button0" Content="Button" Width="433" Canvas.Left="754.6087" Canvas.Top="127.64676" Height="204" RenderTransformOrigin="0.5,0.5">
+    <Image Height="405" Width="835" Canvas.Left="6.633545" Canvas.Top="211.08029" Source="image.png"/>
+    <Button x:Name="Button0" Width="420" Canvas.Left="299" Canvas.Top="201" Height="61" RenderTransformOrigin="0.5,0.5">
       <b:Interaction.Triggers>
         <b:EventTrigger SourceName="Button0" EventName="MouseEnter">
           <b:ControlStoryboardAction Storyboard="{DynamicResource Storyboard0}"/>
@@ -60,5 +60,37 @@
       </Button.RenderTransform>
     </Button>
     <TextBox Text="TextBox" TextWrapping="Wrap" Width="374" Canvas.Left="824.684" Canvas.Top="470.51212" CaretIndex="0" SelectionLength="0" SelectionStart="0" Height="163"/>
+    <Button x:Name="Button1" Width="420" Canvas.Left="294.16998" Canvas.Top="286.95352" Height="61" RenderTransformOrigin="0.5,0.5">
+      <b:Interaction.Triggers>
+        <b:EventTrigger SourceName="Button0" EventName="MouseEnter">
+          <b:ControlStoryboardAction Storyboard="{DynamicResource Storyboard0}"/>
+          <b:ChangePropertyAction TargetName="Button0" PropertyName="Content" Value="ChangedContent"/>
+        </b:EventTrigger>
+      </b:Interaction.Triggers>
+      <Button.RenderTransform>
+        <TransformGroup>
+          <ScaleTransform/>
+          <SkewTransform/>
+          <RotateTransform/>
+          <TranslateTransform/>
+        </TransformGroup>
+      </Button.RenderTransform>
+    </Button>
+    <Button x:Name="Button2" Content="Button" Width="420" Canvas.Left="271.40546" Canvas.Top="383.80963" Height="61" RenderTransformOrigin="0.5,0.5">
+      <b:Interaction.Triggers>
+        <b:EventTrigger SourceName="Button0" EventName="MouseEnter">
+          <b:ControlStoryboardAction Storyboard="{DynamicResource Storyboard0}"/>
+          <b:ChangePropertyAction TargetName="Button0" PropertyName="Content" Value="ChangedContent"/>
+        </b:EventTrigger>
+      </b:Interaction.Triggers>
+      <Button.RenderTransform>
+        <TransformGroup>
+          <ScaleTransform/>
+          <SkewTransform/>
+          <RotateTransform/>
+          <TranslateTransform/>
+        </TransformGroup>
+      </Button.RenderTransform>
+    </Button>
   </Canvas>
 </Page>
