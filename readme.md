@@ -4,7 +4,7 @@ NoesisGUI is a really sophisticated UI that is rendered on top of your game. It 
 GMNoesis, pronounce Gee'm'no'yee'sis', is a GameMaker extension. Currently only supports windows but you can change that by making a PR.
 
 # Whats the state right now? 
-It will load all your fonts and images and textures and display them on top of your gamemaker game. you can use mouse and keyboard and gamepad. the Studio's Interaction events seem to be broken. 
+Noesis itself is fully functional on top of the game maker window and interactable with input. There is not an established way to provide data from game to UI.
 
 # Whats the quickest way i can play around with this
 1. clone the project
