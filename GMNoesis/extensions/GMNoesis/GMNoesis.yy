@@ -49,7 +49,10 @@
   "maclinkerflags":"",
   "macsourcedir":"",
   "name":"GMNoesis",
-  "options":[],
+  "options":[
+    {"$GMExtensionOption":"","%Name":"loicense_name","defaultValue":"","description":"","displayName":"","exportToINI":false,"extensionId":null,"guid":"ccc35a29-86bf-4c7a-86a3-cc499b3e3703","hidden":false,"listItems":[],"name":"loicense_name","optType":2,"resourceType":"GMExtensionOption","resourceVersion":"2.0",},
+    {"$GMExtensionOption":"","%Name":"loicense_key","defaultValue":"","description":"","displayName":"","exportToINI":false,"extensionId":null,"guid":"21be67c1-5274-4c4f-b642-27e6e88a4555","hidden":false,"listItems":[],"name":"loicense_key","optType":2,"resourceType":"GMExtensionOption","resourceVersion":"2.0",},
+  ],
   "optionsFile":"options.json",
   "packageId":"",
   "parent":{
