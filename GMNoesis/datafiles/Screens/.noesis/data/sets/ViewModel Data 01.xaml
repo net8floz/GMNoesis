@@ -1,4 +1,8 @@
 <vdctx:PlayerViewModel xmlns:vdctx="clr-namespace:GMNoesis" name="net8floz" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns:system="clr-namespace:System;assembly=mscorlib">
+  <vdctx:PlayerViewModel.scores>
+    <vdctx:PlayerScoreViewModel high_score="100" current_score="200"/>
+    <vdctx:PlayerScoreViewModel high_score="200" current_score="300"/>
+  </vdctx:PlayerViewModel.scores>
   <vdctx:PlayerViewModel.score>
     <vdctx:PlayerScoreViewModel high_score="100" current_score="200"/>
   </vdctx:PlayerViewModel.score>

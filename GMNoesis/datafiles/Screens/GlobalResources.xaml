@@ -6,4 +6,19 @@
       <TextBlock Text="ViewModel"/>
     </Grid>
   </DataTemplate>
+  <DataTemplate x:Key="DataTemplate.001" DataType="String">
+    <Grid>
+      <TextBlock Text="{Binding}"/>
+      <Image Source="promo_skiier1.png" RenderTransformOrigin="0.5,0.5">
+        <Image.RenderTransform>
+          <TransformGroup>
+            <ScaleTransform ScaleX="0.2" ScaleY="0.2"/>
+            <SkewTransform/>
+            <RotateTransform/>
+            <TranslateTransform/>
+          </TransformGroup>
+        </Image.RenderTransform>
+      </Image>
+    </Grid>
+  </DataTemplate>
 </ResourceDictionary>

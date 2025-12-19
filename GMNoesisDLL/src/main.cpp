@@ -594,9 +594,10 @@ double gm_function_vm_process_read_buffer()
 
             vm->SetValueNoEvent(param_name, collection);
         }
-        
-        switch (property_data->vm_param_type)
+        else
         {
+            switch (property_data->vm_param_type)
+            {
             case VMParamType::string:
                 {
                     const char* val_str_start = message_read_buffer_current;
@@ -625,6 +626,7 @@ double gm_function_vm_process_read_buffer()
                     vm->SetValueNoEvent(param_name, Noesis::Ptr<DynamicObject>(ref_vm));
                     break;
                 }
+            }
         }
     }
 

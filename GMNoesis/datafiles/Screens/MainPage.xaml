@@ -30,10 +30,10 @@
         </VisualStateGroup.Transitions>
       </VisualStateGroup>
     </VisualStateManager.VisualStateGroups>
-    <StackPanel Height="205" HorizontalAlignment="Center" VerticalAlignment="Top" Width="484.99997" Canvas.Top="68.3589" Canvas.Left="84.35303">
+    <StackPanel Height="107" HorizontalAlignment="Center" VerticalAlignment="Top" Width="402" Canvas.Top="68.3589" Canvas.Left="84.35303">
       <StackPanel Height="41.58" Width="485" Orientation="Horizontal">
         <TextBlock TextWrapping="Wrap" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505" Text="Player Name: "/>
-        <TextBlock TextWrapping="Wrap" Text="{Binding Path=name}" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505"/>
+        <TextBlock TextWrapping="Wrap" Text="{Binding Path=scores[1].current_score}" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505"/>
       </StackPanel>
       <StackPanel Height="41.58" Width="485" Orientation="Horizontal">
         <TextBlock TextWrapping="Wrap" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505" Text="Score: "/>

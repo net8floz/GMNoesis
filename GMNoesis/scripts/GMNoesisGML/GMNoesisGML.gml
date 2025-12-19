@@ -127,9 +127,12 @@ function GMNoesisVM(_type_name, _definition) constructor {
 					switch (type) {
 						case GMNoesisVMType.string:
 							buffer_write(GMNoesis.read_buffer, buffer_string, string(_val[_i]));
-						break;
+							break;
 						case GMNoesisVMType.number:
 							buffer_write(GMNoesis.read_buffer, buffer_f32, _val[_i]);
+							break;
+						case GMNoesisVMType.view_model:
+							buffer_write(GMNoesis.read_buffer, buffer_u32, _val[_i].handle);
 							break;
 					}
 				}
@@ -138,11 +141,11 @@ function GMNoesisVM(_type_name, _definition) constructor {
 				switch (type) {
 					case GMNoesisVMType.string:
 						buffer_write(GMNoesis.read_buffer, buffer_string, string(_val));
-					break;
-				case GMNoesisVMType.number:
+						break;
+					case GMNoesisVMType.number:
 						buffer_write(GMNoesis.read_buffer, buffer_f32, _val);
-					break;
-				case GMNoesisVMType.view_model:
+						break;
+					case GMNoesisVMType.view_model:
 						buffer_write(GMNoesis.read_buffer, buffer_u32, _val.handle);
 					break;
 				}

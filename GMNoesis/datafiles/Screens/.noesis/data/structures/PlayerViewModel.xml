@@ -3,4 +3,5 @@
   <Property Name="main_button_click" Type="Command"/>
   <Property Name="favorite_colors" Type="Collection" SubType="String" CollectionMinItemCount="0" CollectionMaxItemCount="10"/>
   <Property Name="score" Type="Object" SubType="GMNoesis.PlayerScoreViewModel"/>
+  <Property Name="scores" Type="Collection" SubType="GMNoesis.PlayerScoreViewModel" CollectionMinItemCount="0" CollectionMaxItemCount="10"/>
 </Class>
