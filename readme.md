@@ -80,3 +80,5 @@ noesis_set_view_vm(vm.handle);
 5. Run the bat file GMNoesisDll/generate_sln.bat. This will result in GMNoesisDll/build/GMNoesis.sln to exist.
 6. Open the GMNoesis solution in Rider and edit it. When you build all the relevant DLLs will be moved into the GM project extension folder and ready for testing.
 
+if you need help just come ask me on game maker discord.
+
