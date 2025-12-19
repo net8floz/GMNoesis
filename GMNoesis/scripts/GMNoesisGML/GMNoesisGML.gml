@@ -27,6 +27,7 @@ function GMNoesis() {
 		var _names = struct_get_names(_definition);
 		for (var _i = 0; _i < array_length(_names); _i++) {
 			var _name = _names[_i];
+
 			
 			if (_name == "commands") {
 				continue;	
@@ -38,9 +39,17 @@ function GMNoesis() {
 			if (_is_collection) {
 				_type = _type[0];	
 			}
-		
-			var _is_command = false;
-			noesis_vm_type_add_definition(_name, _type, _is_collection,  _is_command);
+			
+			var _is_vm = is_struct(_type);
+			if (_is_vm) {
+				var _vm_names = struct_get_names(_type);
+				var _vm_type_name = _vm_names[0];
+				_type = GMNoesisVMType.view_model;
+				noesis_vm_type_add_vm_definition(_name, _vm_type_name, _is_collection);
+			} else {
+				var _is_command = false;
+				noesis_vm_type_add_definition(_name, _type, _is_collection, _is_command);
+			}
 		}
 		
 		if (is_struct(_definition[$ "commands"])) {
@@ -100,6 +109,10 @@ function GMNoesisVM(_type_name, _definition) constructor {
 			_type = _type[0];	
 		}
 		
+		if (is_struct(_type)) {
+			_type = GMNoesisVMType.view_model;
+		}
+		
 		
 		self[$ $"set_{_name}"] = method({this: _this, name: _name, type: _type, is_collection : _is_collection}, function(_val) {
 			this[$ name] = _val;
@@ -129,6 +142,9 @@ function GMNoesisVM(_type_name, _definition) constructor {
 				case GMNoesisVMType.number:
 						buffer_write(GMNoesis.read_buffer, buffer_f32, _val);
 					break;
+				case GMNoesisVMType.view_model:
+						buffer_write(GMNoesis.read_buffer, buffer_u32, _val.handle);
+					break;
 				}
 			}
 		});
@@ -146,6 +162,9 @@ function GMNoesisVM(_type_name, _definition) constructor {
 					break;
 				case GMNoesisVMType.number:
 					self[$ _name] = 0;
+					break;
+				case GMNoesisVMType.view_model:
+					self[$ _name] = undefined; // nothing to really do here
 					break;
 			}
 		}

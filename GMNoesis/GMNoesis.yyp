@@ -14,7 +14,8 @@
   "IncludedFiles":[
     {"$GMIncludedFile":"","%Name":"ViewModel Data 01.xaml","CopyToMask":-1,"filePath":"datafiles/Screens/.noesis/data/sets","name":"ViewModel Data 01.xaml","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"MyEnum000.xml","CopyToMask":-1,"filePath":"datafiles/Screens/.noesis/data/structures","name":"MyEnum000.xml","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
-    {"$GMIncludedFile":"","%Name":"ViewModel.xml","CopyToMask":-1,"filePath":"datafiles/Screens/.noesis/data/structures","name":"ViewModel.xml","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"PlayerScoreViewModel.xml","CopyToMask":-1,"filePath":"datafiles/Screens/.noesis/data/structures","name":"PlayerScoreViewModel.xml","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"PlayerViewModel.xml","CopyToMask":-1,"filePath":"datafiles/Screens/.noesis/data/structures","name":"PlayerViewModel.xml","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"FavoriteColorsListItemComponent.xaml","CopyToMask":-1,"filePath":"datafiles/Screens","name":"FavoriteColorsListItemComponent.xaml","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"GlobalResources.xaml","CopyToMask":-1,"filePath":"datafiles/Screens","name":"GlobalResources.xaml","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"GMNoesis.noesis","CopyToMask":-1,"filePath":"datafiles/Screens","name":"GMNoesis.noesis","resourceType":"GMIncludedFile","resourceVersion":"2.0",},

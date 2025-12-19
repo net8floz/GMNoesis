@@ -1,10 +1,13 @@
-<vdctx:ViewModel xmlns:vdctx="clr-namespace:GMNoesis" name="net8floz" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns:system="clr-namespace:System;assembly=mscorlib">
-  <vdctx:ViewModel.main_button_click>
+<vdctx:PlayerViewModel xmlns:vdctx="clr-namespace:GMNoesis" name="net8floz" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns:system="clr-namespace:System;assembly=mscorlib">
+  <vdctx:PlayerViewModel.score>
+    <vdctx:PlayerScoreViewModel high_score="100" current_score="200"/>
+  </vdctx:PlayerViewModel.score>
+  <vdctx:PlayerViewModel.main_button_click>
     <MessageCommand Message="Command Executed" IsEnabled="True"/>
-  </vdctx:ViewModel.main_button_click>
-  <vdctx:ViewModel.favorite_colors>
+  </vdctx:PlayerViewModel.main_button_click>
+  <vdctx:PlayerViewModel.favorite_colors>
     <system:String>red</system:String>
     <system:String>green</system:String>
     <system:String>blue</system:String>
-  </vdctx:ViewModel.favorite_colors>
-</vdctx:ViewModel>
+  </vdctx:PlayerViewModel.favorite_colors>
+</vdctx:PlayerViewModel>

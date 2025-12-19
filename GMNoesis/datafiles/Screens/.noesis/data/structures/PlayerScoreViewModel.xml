@@ -1,0 +1,4 @@
+<Class Name="PlayerScoreViewModel">
+  <Property Name="high_score" Type="Number" NumberMinValue="0" NumberMaxValue="100" NumberDecimalCount="0"/>
+  <Property Name="current_score" Type="Number" NumberMinValue="0" NumberMaxValue="100" NumberDecimalCount="0"/>
+</Class>

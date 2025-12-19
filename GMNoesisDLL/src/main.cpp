@@ -356,8 +356,36 @@ double gm_function_create_vm_type_begin(char* type_name)
     return 1; 
 }
 
+extern "C" __declspec(dllexport)
+double gm_function_create_vm_type_add_vm_definition(char* property_name, char* vm_type_name, double is_collection)
+{
+    std::vector<GeneratedVMTypeProperty>& collection = g_builder_state.properties;
+    
+    if (static_cast<bool>(is_collection))
+    {
+        collection.emplace_back(GeneratedVMTypeProperty
+        {
+            Noesis::TypeOf<Noesis::BaseObservableCollection>(),
+            property_name,
+            vm_type_name,
+            VMParamType::view_model,
+            true
+        });
+    } else
+    {
+        collection.emplace_back(GeneratedVMTypeProperty
+           {
+               Noesis::TypeOf<Noesis::BaseComponent>(),
+               property_name,
+               vm_type_name,
+                VMParamType::view_model,
+               false
+           });
+    }
 
- 
+    return 1;
+}
+
 extern "C" __declspec(dllexport)
 double gm_function_create_vm_type_add_definition(char* property_name, double type_enum, double is_collection, double is_command)
 {
@@ -375,6 +403,7 @@ double gm_function_create_vm_type_add_definition(char* property_name, double typ
         {
             Noesis::TypeOf<Noesis::BaseObservableCollection>(),
             property_name,
+            "",
             type,
             true
         });
@@ -388,6 +417,7 @@ double gm_function_create_vm_type_add_definition(char* property_name, double typ
             {
                 Noesis::TypeOf<Noesis::String>(),
                 property_name,
+                "",
                 type,
                 false
             });
@@ -398,6 +428,7 @@ double gm_function_create_vm_type_add_definition(char* property_name, double typ
             {
                 Noesis::TypeOf<float>(),
                 property_name,
+                "",
                 type,
                 false
             });
@@ -546,6 +577,18 @@ double gm_function_vm_process_read_buffer()
                         collection->Add(Noesis::Boxing::Box<float>(value));
                         break;
                     }
+                
+                case VMParamType::view_model:
+                    {
+                        uint32_t ref_id  = 0;
+                        memcpy(&ref_id, message_read_buffer_current, sizeof(uint32_t));
+                        message_read_buffer_current += sizeof(uint32_t);
+
+                        auto ref_vm = g_vm_instances.find(static_cast<int>(ref_id))->second;
+                        collection->Add(ref_vm);
+                        break;
+                    }
+                    break;
                 }
             }
 
@@ -570,6 +613,16 @@ double gm_function_vm_process_read_buffer()
                     memcpy(&value, message_read_buffer_current, sizeof(float));
                     message_read_buffer_current += sizeof(float);
                     vm->SetValueNoEvent(param_name, Noesis::Boxing::Box(value));
+                    break;
+                }
+            case VMParamType::view_model:
+                {
+                    uint32_t ref_id  = 0;
+                    memcpy(&ref_id, message_read_buffer_current, sizeof(uint32_t));
+                    message_read_buffer_current += sizeof(uint32_t);
+
+                    auto ref_vm = g_vm_instances.find(static_cast<int>(ref_id))->second;
+                    vm->SetValueNoEvent(param_name, Noesis::Ptr<DynamicObject>(ref_vm));
                     break;
                 }
         }

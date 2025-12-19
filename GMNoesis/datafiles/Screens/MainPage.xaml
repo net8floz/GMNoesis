@@ -10,7 +10,10 @@
   <Page.Background>
     <SolidColorBrush Color="#0000558D"/>
   </Page.Background>
-  <Canvas Margin="0,0,629,0" Background="#FF8F2626">
+  <Canvas Margin="0,0,629,0">
+    <Canvas.Background>
+      <SolidColorBrush Color="#FF8F2626" Opacity="0"/>
+    </Canvas.Background>
     <VisualStateManager.VisualStateGroups>
       <VisualStateGroup x:Name="VisualStateGroup0">
         <VisualStateGroup.Transitions>
@@ -27,11 +30,18 @@
         </VisualStateGroup.Transitions>
       </VisualStateGroup>
     </VisualStateManager.VisualStateGroups>
-    <TextBlock TextWrapping="Wrap" Text="{Binding Path=favorite_colors[0]}" Canvas.Left="58.638733" Canvas.Top="36.40677" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505"/>
+    <StackPanel Height="205" HorizontalAlignment="Center" VerticalAlignment="Top" Width="484.99997" Canvas.Top="68.3589" Canvas.Left="84.35303">
+      <StackPanel Height="41.58" Width="485" Orientation="Horizontal">
+        <TextBlock TextWrapping="Wrap" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505" Text="Player Name: "/>
+        <TextBlock TextWrapping="Wrap" Text="{Binding Path=name}" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505"/>
+      </StackPanel>
+      <StackPanel Height="41.58" Width="485" Orientation="Horizontal">
+        <TextBlock TextWrapping="Wrap" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505" Text="Score: "/>
+        <TextBlock TextWrapping="Wrap" Text="{Binding Path=score.current_score}" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505"/>
+      </StackPanel>
+    </StackPanel>
     <Image Canvas.Left="521.3109" Canvas.Top="127.64676" Source="promo_skiier1.Copy.png" Width="498" Height="438" BitmapScalingMode="NearestNeighbor"/>
-    <Image Height="405" Width="835" Canvas.Left="169.52373" Canvas.Top="82.16983" Source="image.png"/>
-    <TextBox TextWrapping="Wrap" Width="374" Canvas.Left="824.684" Canvas.Top="470.51212" CaretIndex="0" SelectionLength="0" SelectionStart="0" Height="163" Text="{Binding Path=name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-    <Button Content="Button" Width="488" Canvas.Left="591" Canvas.Top="120" Height="59" Command="{Binding Path=main_button_click}" CommandParameter="hello world!!!"/>
-    <ItemsControl Height="344.93176" Width="100" Canvas.Top="207.08032" Canvas.Left="69.52373" ItemTemplate="{DynamicResource DataTemplate.001}" ItemsSource="{Binding Path=favorite_colors}"/>
+    <Image Height="405" Width="835" Canvas.Left="534.9662" Canvas.Top="303.34674" Source="image.png"/>
+    <ItemsControl Height="344.93176" Width="100" Canvas.Top="51.87056" Canvas.Left="1154.1193" ItemTemplate="{DynamicResource DataTemplate.001}" ItemsSource="{Binding Path=favorite_colors}"/>
   </Canvas>
 </Page>

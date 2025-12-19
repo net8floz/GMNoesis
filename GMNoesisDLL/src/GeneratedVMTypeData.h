@@ -13,13 +13,15 @@ namespace Noesis
 enum class VMParamType 
 {
     string,
-    number
+    number,
+    view_model
 };
 
 struct GeneratedVMTypeProperty
 {
     const Noesis::Type* dynamic_noesis_type;
     std::string property_name;
+    std::string vm_type_name;
     VMParamType vm_param_type;
     bool is_collection = false;
 };

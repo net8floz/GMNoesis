@@ -118,8 +118,6 @@ public:
     }
 };
 
-
-
 const Noesis::TypeClass* DynamicObject::create_dynamic_type(
     const std::string& type_name,
     const std::vector<GeneratedVMTypeProperty>& properties,
@@ -137,14 +135,7 @@ const Noesis::TypeClass* DynamicObject::create_dynamic_type(
 
     for (auto& prop : properties)
     {
-        if (prop.is_collection)
-        {
-            builder->AddProperty(new DynamicTypeProperty(Noesis::Symbol(prop.property_name.c_str()),  Noesis::TypeOf<Noesis::BaseCollection>()));   
-        }
-        else
-        {
-            builder->AddProperty(new DynamicTypeProperty(Noesis::Symbol(prop.property_name.c_str()), prop.dynamic_noesis_type));   
-        }
+        builder->AddProperty(new DynamicTypeProperty(Noesis::Symbol(prop.property_name.c_str()), prop.dynamic_noesis_type));   
     }
 
     for (auto& command : commands)
