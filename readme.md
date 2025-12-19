@@ -40,7 +40,10 @@ noesis_load_view("MainPage.xaml");
 vm = new PlayerViewModel(); 
 
 vm.set_name("Player One!");
-vm.set_score(69);
+vm.set_favorite_colors(["red", "green", "blue"]);
+vm.set_score(new PlayerScoreViewModel());
+vm.score.set_high_score(300);
+vm.score.set_score(100);
 
 noesis_set_view_vm(vm.handle);
 
