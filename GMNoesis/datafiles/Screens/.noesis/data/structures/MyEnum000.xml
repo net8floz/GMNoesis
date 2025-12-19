@@ -1,0 +1,4 @@
+<Enum Name="MyEnum000">
+  <Item Name="EnumValue000" Value="0"/>
+  <Item Name="EnumValue001" Value="1"/>
+</Enum>

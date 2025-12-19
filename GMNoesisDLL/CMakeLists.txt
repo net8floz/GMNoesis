@@ -4,10 +4,8 @@ project(GMNoesis LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(SOURCES
-    src/main.cpp
-    src/App.Interactivity.cpp
-)
+file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h")
+
 add_library(GMNoesis SHARED ${SOURCES})
 
 set_target_properties(GMNoesis PROPERTIES
@@ -26,7 +24,6 @@ endforeach()
 
 target_include_directories(GMNoesis PRIVATE
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/include
     ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/Src/Packages/App/ApplicationLauncher/include
     ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/Src/Packages/App/Theme/include

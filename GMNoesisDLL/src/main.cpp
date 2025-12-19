@@ -21,8 +21,10 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <NsGui/ObservableCollection.h>
 
 #include "DynamicViewModel.h"
+#include "GeneratedVMTypeData.h"
 #include "VMWriteMessage.h"
 
 static HWND noesis_hwnd = nullptr;
@@ -241,6 +243,9 @@ static void overlay_thread()
 extern "C" void NsRegisterReflectionAppInteractivity();
 extern "C" void NsInitPackageAppInteractivity();
 
+static char* message_read_buffer_start = nullptr;
+static char* message_read_buffer_current = nullptr;
+
 extern "C" __declspec(dllexport)
 double gm_function_initialize(char* ptr, const double fps, char *event_read_buffer, char* event_write_buffer, const double buffer_size)
 {
@@ -249,6 +254,8 @@ double gm_function_initialize(char* ptr, const double fps, char *event_read_buff
     VMWriteMessage::buffer_size = static_cast<size_t>(buffer_size);
     VMWriteMessage::out_buffer_start = event_write_buffer;
     VMWriteMessage::reset_write_buffer();
+
+    message_read_buffer_start = event_read_buffer;
 
     HWND parent_hwnd = GetParent(game_hwnd);
     RECT rect;
@@ -332,8 +339,8 @@ double gm_function_set_license(char* name, char* key)
 struct VMTypeBuilderState
 {
     std::string type_name;
-    std::vector<std::pair<std::string, const Noesis::Type*>> properties;
-    std::vector<std::pair<std::string, const Noesis::Type*>> commands;
+    std::vector<GeneratedVMTypeProperty> properties;
+    std::vector<GeneratedVMTypeProperty> commands;
 };
 
 static VMTypeBuilderState g_builder_state;
@@ -346,33 +353,57 @@ double gm_function_create_vm_type_begin(char* type_name)
     g_builder_state.type_name = type_name;
     g_builder_state.properties.clear();
     g_builder_state.commands.clear();
-    return 1;
+    return 1; 
 }
 
-enum class VMParamType 
-{
-    string,
-    number
-};
+
  
 extern "C" __declspec(dllexport)
-double gm_function_create_vm_type_add_definition(char* property_name, double type_enum, double is_command)
+double gm_function_create_vm_type_add_definition(char* property_name, double type_enum, double is_collection, double is_command)
 {
-    const VMParamType type = static_cast<VMParamType>(static_cast<int>(type_enum));
+    const VMParamType type = static_cast<VMParamType>(static_cast<int>(type_enum)); 
 
-    std::vector<std::pair<std::string, const Noesis::Type*>>& collection =
+    std::vector<GeneratedVMTypeProperty>& collection =
         static_cast<bool>(is_command)
         ? g_builder_state.commands
         : g_builder_state.properties;
 
-    switch (type)
+
+    if (static_cast<bool>(is_collection))
     {
+        collection.emplace_back(GeneratedVMTypeProperty
+        {
+            Noesis::TypeOf<Noesis::BaseObservableCollection>(),
+            property_name,
+            type,
+            true
+        });
+    }
+    else
+    {
+        switch (type)
+        {
         case VMParamType::string:
-            collection.emplace_back(property_name, Noesis::TypeOf<Noesis::String>());
+            collection.emplace_back(GeneratedVMTypeProperty
+            {
+                Noesis::TypeOf<Noesis::String>(),
+                property_name,
+                type,
+                false
+            });
+        
             break;
         case VMParamType::number:
-            collection.emplace_back(property_name, Noesis::TypeOf<float>());
-        break;
+            collection.emplace_back(GeneratedVMTypeProperty
+            {
+                Noesis::TypeOf<float>(),
+                property_name,
+                type,
+                false
+            });
+            
+            break;
+        }
     }
 
     return 1;
@@ -441,33 +472,6 @@ double gm_function_set_view_vm(double id)
 }
 
 extern "C" __declspec(dllexport)
-double gm_function_vm_set_string(double id, char* property_name, char* value)
-{
-    int int_id = static_cast<int>(id);
-    auto it = g_vm_instances.find(int_id);
-    if (it != g_vm_instances.end())
-    {
-        DynamicObject* vm = it->second;
-        vm->SetValueNoEvent(property_name, Noesis::Boxing::Box<Noesis::String>(value));
-        return 1;
-    }
-    return 0;
-}
-
-extern "C" __declspec(dllexport)
-double gm_function_vm_set_number(double id, char* property_name, char* value)
-{
-    int int_id = static_cast<int>(id);
-    auto it = g_vm_instances.find(int_id);
-    if (it != g_vm_instances.end())
-    {
-        DynamicObject* vm = it->second;
-        vm->SetValueNoEvent(property_name, Noesis::Boxing::Box<float>(std::stof(value)));
-    }
-    return 0;
-}
-
-extern "C" __declspec(dllexport)
 double gm_function_vm_clear_write_buffer()
 {
     VMWriteMessage::reset_write_buffer();
@@ -479,4 +483,97 @@ double gm_function_vm_prepare_write_buffer()
 {
     VMWriteMessage::prepare_write_buffer_for_reading();
     return VMWriteMessage::out_buffer_current == nullptr ? 0 : 1;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_vm_process_read_buffer()
+{
+    message_read_buffer_current = message_read_buffer_start;
+    
+    for (;;)
+    {
+        uint32_t view_model_id  = 0;
+        memcpy(&view_model_id, message_read_buffer_current, sizeof(uint32_t));
+        message_read_buffer_current += sizeof(uint32_t);
+
+        if (view_model_id == 0)
+        {
+            message_read_buffer_current = nullptr;
+            // end of message
+            break;
+        }
+        
+        auto vm = g_vm_instances.find(static_cast<int>(view_model_id))->second;
+        
+        const std::string& type_name = g_vm_instances.find(static_cast<int>(view_model_id))->second->GetTypeName();
+        const auto& type_data = GeneratedVMTypeData::registery.find(type_name)->second;
+        
+        const char* str_start = message_read_buffer_current;
+        size_t length = std::strlen(str_start);
+        std::string param_name(str_start, length);
+        message_read_buffer_current += length + 1;
+
+        const GeneratedVMTypeProperty* property_data = type_data.find_command_by_name(param_name);
+
+        if (property_data->is_collection)
+        {
+            uint32_t expected_count  = 0;
+            memcpy(&expected_count, message_read_buffer_current, sizeof(uint32_t));
+            message_read_buffer_current += sizeof(uint32_t);
+
+            Noesis::Ptr<Noesis::ObservableCollection<Noesis::BaseComponent>> collection = *new Noesis::ObservableCollection<Noesis::BaseComponent>();
+            
+            for (uint32_t index = 0; index < expected_count; index++)
+            {
+                switch (property_data->vm_param_type)
+                {
+                case VMParamType::string:
+                    {
+                        const char* val_str_start = message_read_buffer_current;
+                        size_t val_length = std::strlen(val_str_start);
+                        std::string value(val_str_start, val_length);
+                        message_read_buffer_current += val_length + 1;
+            
+                        collection->Add(Noesis::Boxing::Box<Noesis::String>(value.c_str()));
+                        break;
+                    }
+                case VMParamType::number:
+                    {
+                        float value  = 0;
+                        memcpy(&value, message_read_buffer_current, sizeof(float));
+                        message_read_buffer_current += sizeof(float);
+
+                        collection->Add(Noesis::Boxing::Box<float>(value));
+                        break;
+                    }
+                }
+            }
+
+            vm->SetValueNoEvent(param_name, collection);
+        }
+        
+        switch (property_data->vm_param_type)
+        {
+            case VMParamType::string:
+                {
+                    const char* val_str_start = message_read_buffer_current;
+                    size_t val_length = std::strlen(val_str_start);
+                    std::string value(val_str_start, val_length);
+                    message_read_buffer_current += val_length + 1;
+            
+                    vm->SetValueNoEvent(param_name, Noesis::Boxing::Box<Noesis::String>(value.c_str()));
+                    break;
+                }
+            case VMParamType::number:
+                {
+                    float value  = 0;
+                    memcpy(&value, message_read_buffer_current, sizeof(float));
+                    message_read_buffer_current += sizeof(float);
+                    vm->SetValueNoEvent(param_name, Noesis::Boxing::Box(value));
+                    break;
+                }
+        }
+    }
+
+    return 1;
 }

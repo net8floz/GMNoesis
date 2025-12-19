@@ -1,7 +1,8 @@
 enum GMNoesisVMType
 {
 	string,
-	number
+	number,
+	view_model
 }
 
 function GMNoesis() {
@@ -32,8 +33,14 @@ function GMNoesis() {
 			}
 			
 			var _type = _definition[$ _name];
+			
+			var _is_collection = is_array(_type);
+			if (_is_collection) {
+				_type = _type[0];	
+			}
 		
-			noesis_vm_type_add_definition(_name, _type,  /* is_command */ false);
+			var _is_command = false;
+			noesis_vm_type_add_definition(_name, _type, _is_collection,  _is_command);
 		}
 		
 		if (is_struct(_definition[$ "commands"])) {
@@ -43,7 +50,16 @@ function GMNoesis() {
 			for (var _i = 0; _i < array_length(_names); _i++) {
 				var _name = _names[_i];
 				var _type = _commands[$ _name];
-				noesis_vm_type_add_definition(_name, _type,  /* is_command */ true);
+				
+				var _type = _definition[$ _name];
+			
+				var _is_collection = is_array(_type);
+				if (_is_collection) {
+					_type = _type[0];	
+				}
+		
+				var _is_command = true;
+				noesis_vm_type_add_definition(_name, _type, _is_collection,  _is_command);
 			}
 		}
 	
@@ -78,17 +94,42 @@ function GMNoesisVM(_type_name, _definition) constructor {
 	for (var _i = 0; _i < array_length(_names); _i++) {
 		var _name = _names[_i];
 		var _type = definition[$ _name];
+		var _is_collection = is_array(_type);
 		
-		self[$ $"set_{_name}"] = method({this: _this, name: _name, type: _type}, function(_val) {
+		if (_is_collection) {
+			_type = _type[0];	
+		}
+		
+		
+		self[$ $"set_{_name}"] = method({this: _this, name: _name, type: _type, is_collection : _is_collection}, function(_val) {
 			this[$ name] = _val;
 			
-			switch (type) {
-				case GMNoesisVMType.string:
-					noesis_vm_set_string(this.handle, name, string(_val));
-				break;
-			case GMNoesisVMType.number:
-					noesis_vm_set_number(this.handle, name, _val);
-				break;
+			buffer_write(GMNoesis.read_buffer, buffer_u32, this.handle);
+			buffer_write(GMNoesis.read_buffer, buffer_string, name);
+			
+			if (is_collection) {
+				buffer_write(GMNoesis.read_buffer, buffer_u32, array_length(_val));
+				
+				for (var _i = 0; _i < array_length(_val); _i++) {
+					switch (type) {
+						case GMNoesisVMType.string:
+							buffer_write(GMNoesis.read_buffer, buffer_string, string(_val[_i]));
+						break;
+						case GMNoesisVMType.number:
+							buffer_write(GMNoesis.read_buffer, buffer_f32, _val[_i]);
+							break;
+					}
+				}
+			} else {
+			
+				switch (type) {
+					case GMNoesisVMType.string:
+						buffer_write(GMNoesis.read_buffer, buffer_string, string(_val));
+					break;
+				case GMNoesisVMType.number:
+						buffer_write(GMNoesis.read_buffer, buffer_f32, _val);
+					break;
+				}
 			}
 		});
 		
@@ -96,13 +137,17 @@ function GMNoesisVM(_type_name, _definition) constructor {
 			return this[$ name];
 		});
 		
-		switch (_type) {
-			case GMNoesisVMType.string:
-				self[$ _name] = "";
-				break;
-			case GMNoesisVMType.number:
-				self[$ _name] = 0;
-				break;
+		if (_is_collection) {
+			self[$ _name] = [];
+		} else {
+			switch (_type) {
+				case GMNoesisVMType.string:
+					self[$ _name] = "";
+					break;
+				case GMNoesisVMType.number:
+					self[$ _name] = 0;
+					break;
+			}
 		}
 	}
 }

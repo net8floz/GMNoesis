@@ -1,5 +1,5 @@
 <Project>
-  <Assembly>ReachForTheSkiis</Assembly>
-  <DefaultDataNamespace>ReachForTheSkiis</DefaultDataNamespace>
+  <Assembly>GMNoesis</Assembly>
+  <DefaultDataNamespace>GMNoesis</DefaultDataNamespace>
   <StartupDocument>MainPage.xaml</StartupDocument>
 </Project>

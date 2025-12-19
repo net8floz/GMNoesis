@@ -1,0 +1,5 @@
+<Class Name="ViewModel">
+  <Property Name="name" Type="String" StringMinWordCount="0" StringMaxWordCount="10"/>
+  <Property Name="main_button_click" Type="Command"/>
+  <Property Name="favorite_colors" Type="Collection" SubType="String" CollectionMinItemCount="0" CollectionMaxItemCount="10"/>
+</Class>

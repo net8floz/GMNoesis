@@ -1,4 +1,3 @@
-
 if (noesis_vm_prepare_write_buffer_for_reading()) {
 	var _buffer = GMNoesis.write_buffer;
 

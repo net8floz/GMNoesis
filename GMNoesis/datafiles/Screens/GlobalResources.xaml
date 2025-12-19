@@ -1,4 +1,9 @@
 <ResourceDictionary
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:g="clr-namespace:GMNoesis">
+  <DataTemplate x:Key="TestTemplate" DataType="g:ViewModel">
+    <Grid>
+      <TextBlock Text="ViewModel"/>
+    </Grid>
+  </DataTemplate>
 </ResourceDictionary>

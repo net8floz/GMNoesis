@@ -12,6 +12,8 @@
 #include <NsCore/Delegate.h>
 #include <NsCore/BaseComponent.h>
 
+#include "GeneratedVMTypeData.h"
+
 class DynamicObject : public NoesisApp::NotifyPropertyChangedBase
 {
 public:
@@ -24,10 +26,12 @@ public:
     Noesis::Ptr<BaseComponent> GetValue(const std::string& name) const;
     void register_commands();
 
+    std::string GetTypeName() const { return type_name; }
+    
     static const Noesis::TypeClass* create_dynamic_type(
         const std::string& type_name,
-        const std::vector<std::pair<std::string, const Noesis::Type*>>& properties,
-        const std::vector<std::pair<std::string, const Noesis::Type*>>& commands);
+        const std::vector<GeneratedVMTypeProperty>& properties,
+        const std::vector<GeneratedVMTypeProperty>& commands);
 
 private:
     uint32_t handle = 0;

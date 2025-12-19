@@ -5,20 +5,11 @@
 #include <NsApp/InvokeCommandAction.h>
 #include <NsCore/ReflectionImplement.h>
 #include <NsCore/TypeProperty.h>
+#include <NsGui/ObservableCollection.h>
 
+#include "GeneratedVMTypeData.h"
 #include "VMWriteMessage.h"
 
-
-struct GeneratedVMTypeData
-{
-    std::string type_name;
-    std::vector<std::pair<std::string, const Noesis::Type*>> properties;
-    std::vector<std::pair<std::string, const Noesis::Type*>> commands;
-
-    static std::unordered_map<std::string, GeneratedVMTypeData> registery;
-};
-
-std::unordered_map<std::string, GeneratedVMTypeData> GeneratedVMTypeData::registery{};
 
 
 DynamicObject::DynamicObject(const uint32_t in_handle, const std::string& in_type_name, const Noesis::TypeClass* in_type)
@@ -50,12 +41,9 @@ DynamicObject::DynamicObject(const uint32_t in_handle, const std::string& in_typ
 void DynamicObject::register_commands()
 {
     auto data = GeneratedVMTypeData::registery.find(type_name);
-    for (const auto& pair : data->second.commands)
+    for (const auto& command_property : data->second.commands)
     {
-        auto command_name = pair.first;
-        auto arg_type = pair.second;
-        
-        const Noesis::Ptr<DynamicCommand> cmd = *new DynamicCommand([this, command_name = command_name](Noesis::BaseComponent* param)
+        const Noesis::Ptr<DynamicCommand> cmd = *new DynamicCommand([this, command_name = command_property.property_name](Noesis::BaseComponent* param)
         {
             Noesis::BaseComponent* out_param = param;
 
@@ -72,7 +60,7 @@ void DynamicObject::register_commands()
             });
         });
 
-        values[command_name] = cmd;
+        values[command_property.property_name] = cmd;
     }
 }
 
@@ -99,6 +87,10 @@ void DynamicObject::SetValueNoEvent(const std::string& name, Noesis::Ptr<BaseCom
 Noesis::Ptr<Noesis::BaseComponent> DynamicObject::GetValue(const std::string& name) const
 {
     auto it = values.find(name);
+    if (it != values.end())
+    {
+        auto val = it->second;
+    }
     return it != values.end() ? it->second : nullptr;
 }
 
@@ -120,15 +112,18 @@ public:
         obj->SetValue(GetName().Str(), Noesis::Ptr<Noesis::BaseComponent>(value));
     }
 
-    void* GetContent(const void* ptr) const override { return nullptr; }
+    void* GetContent(const void* ptr) const override
+    {
+        return nullptr;
+    }
 };
 
 
 
 const Noesis::TypeClass* DynamicObject::create_dynamic_type(
     const std::string& type_name,
-    const std::vector<std::pair<std::string, const Noesis::Type*>>& properties,
-    const std::vector<std::pair<std::string, const Noesis::Type*>>& commands)
+    const std::vector<GeneratedVMTypeProperty>& properties,
+    const std::vector<GeneratedVMTypeProperty>& commands)
 {
     Noesis::Symbol type_sym(type_name.c_str());
     if (Noesis::Reflection::IsTypeRegistered(type_sym))
@@ -142,12 +137,19 @@ const Noesis::TypeClass* DynamicObject::create_dynamic_type(
 
     for (auto& prop : properties)
     {
-        builder->AddProperty(new DynamicTypeProperty(Noesis::Symbol(prop.first.c_str()), prop.second));
+        if (prop.is_collection)
+        {
+            builder->AddProperty(new DynamicTypeProperty(Noesis::Symbol(prop.property_name.c_str()),  Noesis::TypeOf<Noesis::BaseCollection>()));   
+        }
+        else
+        {
+            builder->AddProperty(new DynamicTypeProperty(Noesis::Symbol(prop.property_name.c_str()), prop.dynamic_noesis_type));   
+        }
     }
 
     for (auto& command : commands)
     {
-        builder->AddProperty(new DynamicTypeProperty(Noesis::Symbol(command.first.c_str()),  Noesis::TypeOf<Noesis::ICommand>()));
+        builder->AddProperty(new DynamicTypeProperty(Noesis::Symbol(command.property_name.c_str()),  Noesis::TypeOf<Noesis::ICommand>()));
     }
 
     GeneratedVMTypeData::registery.emplace(type_name, GeneratedVMTypeData{
