@@ -7,14 +7,7 @@ GMNoesis, pronounce Gee'm'no'yee'sis', is a GameMaker extension. Currently only 
 Noesis itself is fully functional on top of the game maker window and interactable with input. View models can be created in GML and bound to the main view. You can send commands through view models through VMs from Noesis -> GML.
 
 ```gml
-// define a view model
-
-
-function PlayerScoreViewModel() : GMNoesisVM("PlayerScoreViewModel", {
-	high_score: GMNoesisVMType.number,
-	current_score: GMNoesisVMType.number
-}) constructor {}
-	
+// define a main view model
 function PlayerViewModel() : GMNoesisVM("PlayerViewModel", {
   	// define what types you want this should match the VM you create in App Studio
 	name: GMNoesisVMType.string,
@@ -33,6 +26,12 @@ function PlayerViewModel() : GMNoesisVM("PlayerViewModel", {
 	}
 }
 
+// define a sub-view model
+function PlayerScoreViewModel() : GMNoesisVM("PlayerScoreViewModel", {
+	high_score: GMNoesisVMType.number,
+	current_score: GMNoesisVMType.number
+}) constructor {}
+	
 // create main vm
 vm = new PlayerViewModel(); 
 
