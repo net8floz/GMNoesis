@@ -20,6 +20,7 @@ function PlayerViewModel() : GMNoesisVM("PlayerViewModel", {
 	name: GMNoesisVMType.string,
 	favorite_colors: [GMNoesisType.string], // collection of strings
 	score: {PlayerScoreViewModel}, // nested view model
+	score_history: [{PlayerScoreViewModel}], // a collection of nested view models
 	commands: {
   // define any commands you want, this should match the VM you create in App STudio
 		main_button_click: GMNoesisVMType.string
@@ -32,11 +33,7 @@ function PlayerViewModel() : GMNoesisVM("PlayerViewModel", {
 	}
 }
 
-// load a view and bind a view model
-
-// note that GMNoesis doesnt need any setup or initialize function just load the view and set the VM
-noesis_load_view("MainPage.xaml");
-
+// create main vm
 vm = new PlayerViewModel(); 
 
 // support single props
@@ -50,6 +47,20 @@ vm.set_score(new PlayerScoreViewModel());
 vm.score.set_high_score(300);
 vm.score.set_score(100);
 
+// support collection of nested vms
+var _score1 = new PlayerScoreViewModel();
+_score1.set_current_score(100);
+_score1.set_high_score(200);
+
+var _score2 = new PlayerScoreViewModel();
+_score2.set_current_score(100);
+_score2.set_high_score(200);
+
+vm.set_set_score_history([_score1, _score2]);
+
+// load a view and bind a view model
+// note that GMNoesis doesnt need any setup or initialize function just load the view and set the VM
+noesis_load_view("MainPage.xaml");
 noesis_set_view_vm(vm.handle);
 
 ```
