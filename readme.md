@@ -9,10 +9,17 @@ Noesis itself is fully functional on top of the game maker window and interactab
 ```gml
 // define a view model
 
+
+function PlayerScoreViewModel() : GMNoesisVM("PlayerScoreViewModel", {
+	high_score: GMNoesisVMType.number,
+	current_score: GMNoesisVMType.number
+}) constructor {}
+	
 function PlayerViewModel() : GMNoesisVM("PlayerViewModel", {
-  // define what types you want this should match the VM you create in App Studio
+  	// define what types you want this should match the VM you create in App Studio
 	name: GMNoesisVMType.string,
-	score: GMNoesisVMType.number,
+	favorite_colors: [GMNoesisType.string], // collection of strings
+	score: {PlayerScoreViewModel}, // nested view model
 	commands: {
   // define any commands you want, this should match the VM you create in App STudio
 		main_button_click: GMNoesisVMType.string
