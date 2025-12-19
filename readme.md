@@ -39,8 +39,13 @@ noesis_load_view("MainPage.xaml");
 
 vm = new PlayerViewModel(); 
 
+// support single props
 vm.set_name("Player One!");
+
+// support collections
 vm.set_favorite_colors(["red", "green", "blue"]);
+
+// support nested VMs
 vm.set_score(new PlayerScoreViewModel());
 vm.score.set_high_score(300);
 vm.score.set_score(100);
