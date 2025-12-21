@@ -15,8 +15,12 @@ function PlayerViewModel() : GMNoesisVM("PlayerViewModel", {
 	score: {PlayerScoreViewModel}, // nested view model
 	score_history: [{PlayerScoreViewModel}], // a collection of nested view models
 	commands: {
-  // define any commands you want, this should match the VM you create in App STudio
+        // define any commands you want. this is for talking from UI -> GAME
 		main_button_click: GMNoesisVMType.string
+	}, 
+    events: {
+		// define any events you want. this is for talking from GAME -> UI
+        play_reward_animation: [GMNoesisVMType.number]
 	}
 }) constructor {
 
@@ -61,6 +65,10 @@ vm.set_set_score_history([_score1, _score2]);
 // note that GMNoesis doesnt need any setup or initialize function just load the view and set the VM
 noesis_load_view("MainPage.xaml");
 noesis_set_view_vm(vm.handle);
+
+// support events from GAME -> UI
+// events are prefeixed with execute_
+vm.execute_play_reward_animation();
 
 ```
 
