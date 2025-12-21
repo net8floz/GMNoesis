@@ -1,5 +1,9 @@
-<Project>
-  <Assembly>GMNoesis</Assembly>
-  <DefaultDataNamespace>GMNoesis</DefaultDataNamespace>
-  <StartupDocument>MainPage.xaml</StartupDocument>
+<Project Version="0.0.161">
+  <Assembly>
+    GMNoesis
+  </Assembly>
+  <DefaultDataNamespace>
+    GMNoesis
+  </DefaultDataNamespace>
+  <StartupDocument/>
 </Project>

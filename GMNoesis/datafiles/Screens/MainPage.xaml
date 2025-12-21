@@ -1,47 +1,58 @@
 <Page
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  mc:Ignorable="d" xmlns:noesis="clr-namespace:NoesisGUIExtensions" Height="NaN" d:DesignWidth="1280" d:DesignHeight="720" xmlns:b="http://schemas.microsoft.com/xaml/behaviors" d:DataContext="ViewModel Data 01" xmlns:system="clr-namespace:System;assembly=mscorlib">
-  <Page.Resources>
-    <Storyboard x:Key="Storyboard0" RepeatBehavior="Forever"/>
+  xmlns:noesis="clr-namespace:NoesisGUIExtensions"
+  xmlns:system="clr-namespace:System;assembly=mscorlib"
+  Height="NaN"
+  d:DataContext="ViewModel Data 01"
+  d:DesignHeight="720"
+  d:DesignWidth="1280"
+  mc:Ignorable="d">
+  <b:Interaction.Triggers>
+    <noesis:DataEventTrigger EventName="play_reward_animation" Source="{Binding} ">
+      <b:ControlStoryboardAction Storyboard="{DynamicResource Storyboard0}"/>
+    </noesis:DataEventTrigger>
+  </b:Interaction.Triggers>
+  <Page.Resources >
+    <Storyboard x:Key="Storyboard0">
+      <DoubleAnimationUsingKeyFrames Storyboard.TargetName="TextBox0" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)">
+        <LinearDoubleKeyFrame KeyTime="00:00:00" Value="2.1063116"/>
+        <LinearDoubleKeyFrame KeyTime="00:00:03.8000000" Value="0.5789288"/>
+      </DoubleAnimationUsingKeyFrames>
+      <DoubleAnimationUsingKeyFrames Storyboard.TargetName="TextBox0" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)">
+        <LinearDoubleKeyFrame KeyTime="00:00:00" Value="3.452373"/>
+        <LinearDoubleKeyFrame KeyTime="00:00:03.8000000" Value="2.9090028"/>
+      </DoubleAnimationUsingKeyFrames>
+    </Storyboard>
   </Page.Resources>
-  <Page.Background>
-    <SolidColorBrush Color="#0000558D"/>
-  </Page.Background>
-  <Canvas Margin="0,0,629,0">
-    <Canvas.Background>
-      <SolidColorBrush Color="#FF8F2626" Opacity="0"/>
-    </Canvas.Background>
-    <VisualStateManager.VisualStateGroups>
-      <VisualStateGroup x:Name="VisualStateGroup0">
-        <VisualStateGroup.Transitions>
-          <VisualTransition GeneratedDuration="00:00:00">
-            <Storyboard RepeatBehavior="Forever">
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Button0" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)">
-                <SplineDoubleKeyFrame KeySpline="1,0.02,0.04,0.41" Value="399.33084" KeyTime="00:00:00"/>
-              </DoubleAnimationUsingKeyFrames>
-              <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Button0" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.Y)">
-                <SplineDoubleKeyFrame KeySpline="1,0.02,0.04,0.41" Value="-118.22296" KeyTime="00:00:00"/>
-              </DoubleAnimationUsingKeyFrames>
-            </Storyboard>
-          </VisualTransition>
-        </VisualStateGroup.Transitions>
-      </VisualStateGroup>
-    </VisualStateManager.VisualStateGroups>
-    <StackPanel Height="107" HorizontalAlignment="Center" VerticalAlignment="Top" Width="402" Canvas.Top="68.3589" Canvas.Left="84.35303">
-      <StackPanel Height="41.58" Width="485" Orientation="Horizontal">
-        <TextBlock TextWrapping="Wrap" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505" Text="Player Name: "/>
-        <TextBlock TextWrapping="Wrap" Text="{Binding Path=scores[1].current_score}" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505"/>
-      </StackPanel>
-      <StackPanel Height="41.58" Width="485" Orientation="Horizontal">
-        <TextBlock TextWrapping="Wrap" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505" Text="Score: "/>
-        <TextBlock TextWrapping="Wrap" Text="{Binding Path=score.current_score}" Canvas.Right="0" Canvas.Bottom="0" TextAlignment="Center" FontSize="33" Foreground="#FFFFFFFF" StrokeThickness="21" Stroke="#FFC00505"/>
-      </StackPanel>
-    </StackPanel>
-    <Image Canvas.Left="521.3109" Canvas.Top="127.64676" Source="promo_skiier1.Copy.png" Width="498" Height="438" BitmapScalingMode="NearestNeighbor"/>
-    <Image Height="405" Width="835" Canvas.Left="534.9662" Canvas.Top="303.34674" Source="image.png"/>
-    <ItemsControl Height="344.93176" Width="100" Canvas.Top="51.87056" Canvas.Left="1154.1193" ItemTemplate="{DynamicResource DataTemplate.001}" ItemsSource="{Binding Path=favorite_colors}"/>
-  </Canvas>
+  <Viewbox Stretch="Fill">
+    <Border Width="640" Height="360">
+      <Canvas>
+        <Canvas Canvas.Left="35" Canvas.Top="110.754005" Width="568" Height="228.99998">
+          <noesis:NineSliceImage
+            Canvas.Left="0"
+            Canvas.Top="-51.000008"
+            Width="568"
+            Height="280"
+            Padding="200,200,200,200"
+            ImageSource="images/tile_0000.png"
+            Slices="5,5,5,5"/>
+          <TextBox x:Name="TextBox0" TextWrapping="Wrap" Width="120" Canvas.Top="65.77064" Canvas.Left="211.43344" CaretIndex="0" SelectionLength="0" SelectionStart="0" RenderTransformOrigin="0.5,0.5" Text="{Binding}">
+            <TextBox.RenderTransform>
+              <TransformGroup>
+                <ScaleTransform/>
+                <SkewTransform/>
+                <RotateTransform/>
+                <TranslateTransform/>
+              </TransformGroup>
+            </TextBox.RenderTransform>
+          </TextBox>
+        </Canvas>
+        <noesis:LayoutScaler Width="80"/>
+      </Canvas>
+    </Border>
+  </Viewbox>
 </Page>

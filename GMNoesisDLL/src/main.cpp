@@ -4,6 +4,7 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <ostream>
+#include <dxgi1_2.h>
 #include <thread>
 #include <NsGui/IntegrationAPI.h>
 #include <NsGui/IView.h>
@@ -21,16 +22,21 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <NsCore/Package.h>
 #include <NsGui/ObservableCollection.h>
 
 #include "DynamicViewModel.h"
 #include "GeneratedVMTypeData.h"
+#include "NineSliceImage.h"
 #include "VMWriteMessage.h"
+#include "Windows/WindowsKeys.h"
+#include <dcomp.h>     
+
 
 static HWND noesis_hwnd = nullptr;
 static HWND game_hwnd = nullptr;
 
-static IDXGISwapChain* swap_chain = nullptr;
+static IDXGISwapChain1* swap_chain = nullptr;
 static ID3D11Device* d3d_device = nullptr;
 static ID3D11DeviceContext* d3d_context = nullptr;
 static ID3D11RenderTargetView* render_target_view = nullptr;
@@ -51,41 +57,35 @@ static void render_frame()
 {
     static bool view_init = false;
     
-    if (!view_init)
-    {
-        if (view)
-        {
-            view->GetRenderer()->Init(render_device);
-            view_init = true;
-        }
-    }
+     if (!view_init)
+     {
+         if (view)
+         {
+             view->GetRenderer()->Init(render_device);
+             view_init = true;
+         }
+     }
     
-    if (view)
-    {
-        view->GetRenderer()->UpdateRenderTree();
-        view->GetRenderer()->RenderOffscreen();
-    }
-    
-    d3d_context->OMSetRenderTargets(1, &render_target_view, depth_stencil_view);
-    
-    constexpr float clear_color[4] = {0, 0,0, 0};
-    d3d_context->ClearRenderTargetView(render_target_view, clear_color);
-    if (depth_stencil_view)
-    {
-        d3d_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
-    }
+     if (view)
+     {
+         view->GetRenderer()->UpdateRenderTree();
+         view->GetRenderer()->RenderOffscreen();
+     }
 
-    D3D11_VIEWPORT viewport = {0, 0, (float)(g_width), (float)(g_height), 0.0f, 1.0f};
-    d3d_context->RSSetViewports(1, &viewport);
+    
+    constexpr float clear_color[4] = { 0, 0, 0, 0 }; 
+    d3d_context->OMSetRenderTargets(1, &render_target_view, nullptr);
+    d3d_context->ClearRenderTargetView(render_target_view, clear_color);
 
     if (view)
     {
         view->GetRenderer()->Render();
     }
-
+    D3D11_VIEWPORT viewport = {0, 0, (float)(g_width), (float)(g_height), 0.0f, 1.0f};
+    d3d_context->RSSetViewports(1, &viewport);
     swap_chain->Present(1, 0);
-}
 
+}
 
 LRESULT CALLBACK overlay_proc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
 {
@@ -100,18 +100,27 @@ LRESULT CALLBACK hook_proc(int n_code, WPARAM w_param, LPARAM l_param)
 
         if (view)
         {
+
             switch (msg->message)
             {
+            
             case WM_KEYDOWN:
             case WM_SYSKEYDOWN:
-                view->KeyDown((Noesis::Key)msg->wParam);
-                break;
-
+                {
+                    if (w_param <= 0xff && GMNoesis::Windows::g_key_table[msg->wParam] != 0)
+                    {
+                        view->KeyDown(static_cast<Noesis::Key>(GMNoesis::Windows::g_key_table[msg->wParam]));
+                        break;
+                    }
+                }
             case WM_KEYUP:
             case WM_SYSKEYUP:
-                view->KeyUp((Noesis::Key)msg->wParam);
-                break;
-
+                if (w_param <= 0xff && GMNoesis::Windows::g_key_table[msg->wParam] != 0)
+                {
+                    view->KeyUp(static_cast<Noesis::Key>(GMNoesis::Windows::g_key_table[msg->wParam]));
+                    break;
+                }
+                
             case WM_CHAR:
                 view->Char((uint32_t)msg->wParam);
                 break;
@@ -141,12 +150,23 @@ LRESULT CALLBACK hook_proc(int n_code, WPARAM w_param, LPARAM l_param)
                 break;
             
             case WM_SIZE:
-                g_width = LOWORD(l_param);
-                g_height = HIWORD(l_param);
-                if (view)
+            case WM_MOVE:
+            case WM_MOVING:
+                RECT parentRect;
+    
+                if (GetWindowRect(game_hwnd, &parentRect))
                 {
+                    g_width = parentRect.right - parentRect.left;
+                    g_height = parentRect.bottom - parentRect.top;
+
                     view->SetSize(g_width, g_height);
+                    
+                    SetWindowPos(noesis_hwnd, HWND_TOPMOST,
+                                 parentRect.left, parentRect.top,
+                                 g_width, g_height,
+                                 SWP_NOACTIVATE | SWP_NOZORDER);
                 }
+
                 break;
             }
         }
@@ -156,7 +176,25 @@ LRESULT CALLBACK hook_proc(int n_code, WPARAM w_param, LPARAM l_param)
             double time = Noesis::HighResTimer::Seconds(Noesis::HighResTimer::Ticks() - start_ticks);
             if (view)
             {
+
+
+                RECT parentRect;
+    
+                if (GetWindowRect(game_hwnd, &parentRect))
+                {
+                    g_width = parentRect.right - parentRect.left;
+                    g_height = parentRect.bottom - parentRect.top;
+
+                    view->SetSize(g_width, g_height);
+                    
+                    SetWindowPos(noesis_hwnd, HWND_TOPMOST,
+                                 parentRect.left, parentRect.top,
+                                 g_width, g_height,
+                                 SWP_NOACTIVATE | SWP_NOZORDER);
+                }
+                
                 view->Update(time);
+
             }
         }
     }
@@ -167,61 +205,114 @@ LRESULT CALLBACK hook_proc(int n_code, WPARAM w_param, LPARAM l_param)
 static void overlay_thread()
 {
     HINSTANCE h_instance = GetModuleHandle(NULL);
-
+    
     WNDCLASS wc = {};
     wc.lpfnWndProc = overlay_proc;
     wc.hInstance = h_instance;
     wc.lpszClassName = TEXT("overlay_class");
+    wc.hbrBackground = nullptr;
     RegisterClass(&wc);
-    
 
     noesis_hwnd = CreateWindowEx(
-        WS_EX_TRANSPARENT | WS_EX_NOACTIVATE,
+        WS_EX_LAYERED | WS_EX_TRANSPARENT,
         TEXT("overlay_class"), TEXT(""),
-        WS_CHILD | WS_VISIBLE | WS_DISABLED,
-        0, 0,
-        g_width, g_height,
-        game_hwnd, NULL, h_instance, NULL);
+        WS_VISIBLE | WS_POPUP,
+        0, 0, g_width, g_height,
+        nullptr, nullptr, h_instance, NULL);
 
-    if (!noesis_hwnd) return;
-    
-    SetLayeredWindowAttributes(noesis_hwnd, 0, 255, LWA_ALPHA);
-    
-    DXGI_SWAP_CHAIN_DESC swap_chain_desc = {};
-    swap_chain_desc.BufferCount = 1;
-    swap_chain_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swap_chain_desc.OutputWindow = noesis_hwnd;
-    swap_chain_desc.SampleDesc.Count = 1;
-    swap_chain_desc.Windowed = TRUE;
-    swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+    if (!noesis_hwnd) {
+        std::cerr << "CreateWindowEx failed: " << GetLastError() << std::endl;
+        return;
+    }
 
+    SetWindowLongPtr(noesis_hwnd, GWLP_HWNDPARENT, (LONG_PTR)game_hwnd);
+    
     D3D_FEATURE_LEVEL feature_level;
-    HRESULT hr = D3D11CreateDeviceAndSwapChain(
+    HRESULT hr = D3D11CreateDevice(
         nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
         nullptr, 0, D3D11_SDK_VERSION,
-        &swap_chain_desc, &swap_chain, &d3d_device, &feature_level, &d3d_context);
-    if (FAILED(hr)) return;
+        &d3d_device, &feature_level, &d3d_context);
 
+    if (FAILED(hr)) {
+        std::cerr << "D3D11CreateDevice failed: 0x" << std::hex << hr << std::endl;
+        return;
+    }
+ 
+    DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
+    swap_chain_desc.Width = g_width;
+    swap_chain_desc.Height = g_height;
+    swap_chain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    swap_chain_desc.BufferCount = 2;
+    swap_chain_desc.SampleDesc.Count = 1;
+    swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+    swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
+    swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+
+    IDXGIFactory2* dxgi_factory = nullptr;
+    hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), (void**)&dxgi_factory);
+    if (FAILED(hr)) {
+        std::cerr << "CreateDXGIFactory2 failed: 0x" << std::hex << hr << std::endl;
+        return;
+    }
+
+    hr = dxgi_factory->CreateSwapChainForComposition(d3d_device, &swap_chain_desc, nullptr, &swap_chain);
+    dxgi_factory->Release();
+    if (FAILED(hr)) {
+        std::cerr << "CreateSwapChainForComposition failed: 0x" << std::hex << hr << std::endl;
+        return;
+    }
+    
+    IDXGIDevice* dxgi_device = nullptr;
+    hr = d3d_device->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgi_device);
+    if (FAILED(hr)) {
+        std::cerr << "QueryInterface for IDXGIDevice failed: 0x" << std::hex << hr << std::endl;
+        return;
+    }
+    
+    IDCompositionDevice* dcomp_device = nullptr;
+    hr = DCompositionCreateDevice(dxgi_device, __uuidof(IDCompositionDevice), (void**)&dcomp_device);
+    dxgi_device->Release();
+    if (FAILED(hr)) {
+        std::cerr << "DCompositionCreateDevice failed: 0x" << std::hex << hr << std::endl;
+        return;
+    }
+    
+    IDCompositionTarget* dcomp_target = nullptr;
+    hr = dcomp_device->CreateTargetForHwnd(noesis_hwnd, TRUE, &dcomp_target);
+    if (FAILED(hr)) {
+        std::cerr << "CreateTargetForHwnd failed: 0x" << std::hex << hr << std::endl;
+        return;
+    }
+
+    IDCompositionVisual* dcomp_visual = nullptr;
+    hr = dcomp_device->CreateVisual(&dcomp_visual);
+    if (FAILED(hr)) {
+        std::cerr << "CreateVisual failed: 0x" << std::hex << hr << std::endl;
+        return;
+    }
+
+    hr = dcomp_visual->SetContent(swap_chain);
+    if (FAILED(hr)) {
+        std::cerr << "SetContent failed: 0x" << std::hex << hr << std::endl;
+        return;
+    }
+
+    hr = dcomp_target->SetRoot(dcomp_visual);
+    if (FAILED(hr)) {
+        std::cerr << "SetRoot failed: 0x" << std::hex << hr << std::endl;
+        return;
+    }
+
+    hr = dcomp_device->Commit();
+    if (FAILED(hr)) {
+        std::cerr << "Commit failed: 0x" << std::hex << hr << std::endl;
+        return;
+    }
+    
     ID3D11Texture2D* back_buffer = nullptr;
     swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&back_buffer);
     d3d_device->CreateRenderTargetView(back_buffer, nullptr, &render_target_view);
     back_buffer->Release();
-
-    D3D11_TEXTURE2D_DESC depth_desc = {};
-    depth_desc.Width = g_width;
-    depth_desc.Height = g_height;
-    depth_desc.MipLevels = 1;
-    depth_desc.ArraySize = 1;
-    depth_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    depth_desc.SampleDesc.Count = 1;
-    depth_desc.Usage = D3D11_USAGE_DEFAULT;
-    depth_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-
-    ID3D11Texture2D* depth_tex = nullptr;
-    d3d_device->CreateTexture2D(&depth_desc, nullptr, &depth_tex);
-    d3d_device->CreateDepthStencilView(depth_tex, nullptr, &depth_stencil_view);
-    depth_tex->Release();
 
     render_device = NoesisApp::D3D11Factory::CreateDevice(d3d_context, false);
     
@@ -243,10 +334,10 @@ static void overlay_thread()
 extern "C" void NsRegisterReflectionAppInteractivity();
 extern "C" void NsInitPackageAppInteractivity();
 
-static char* message_read_buffer_start = nullptr;
+static char* message_read_buffer_start = nullptr; 
 static char* message_read_buffer_current = nullptr;
 
-extern "C" __declspec(dllexport)
+extern "C" __declspec(dllexport) 
 double gm_function_initialize(char* ptr, const double fps, char *event_read_buffer, char* event_write_buffer, const double buffer_size)
 {
     game_hwnd = (HWND)ptr;
@@ -257,7 +348,7 @@ double gm_function_initialize(char* ptr, const double fps, char *event_read_buff
 
     message_read_buffer_start = event_read_buffer;
 
-    HWND parent_hwnd = GetParent(game_hwnd);
+    HWND parent_hwnd = GetParent(game_hwnd);  
     RECT rect;
     if (GetClientRect(parent_hwnd, &rect))
     {
@@ -274,13 +365,18 @@ double gm_function_initialize(char* ptr, const double fps, char *event_read_buff
     Noesis::GUI::Init();
     NsRegisterReflectionAppInteractivity();
     NsInitPackageAppInteractivity();
+
+    NS_REGISTER_COMPONENT(NineSlice::NineSliceImage)
+    
     Noesis::GUI::SetXamlProvider(Noesis::MakePtr<NoesisApp::LocalXamlProvider>("./Screens"));
     Noesis::GUI::SetFontProvider(Noesis::MakePtr<NoesisApp::LocalFontProvider>("./Screens"));
     const char* fonts[] = {"Fonts/#PT Root UI", "Arial", "Segoe UI Emoji"};
     Noesis::GUI::SetFontFallbacks(fonts, 3);
     Noesis::GUI::SetFontDefaultProperties(15.0f, Noesis::FontWeight_Normal, Noesis::FontStretch_Normal, Noesis::FontStyle_Normal);
     Noesis::GUI::SetTextureProvider(Noesis::MakePtr<NoesisApp::LocalTextureProvider>("./Screens"));
+    NoesisApp::SetThemeProviders();
     Noesis::GUI::LoadApplicationResources(NoesisApp::Theme::DarkBlue());
+    
     start_ticks = Noesis::HighResTimer::Ticks();
     
     DWORD gameThreadId = GetWindowThreadProcessId(game_hwnd, nullptr);
@@ -341,6 +437,7 @@ struct VMTypeBuilderState
     std::string type_name;
     std::vector<GeneratedVMTypeProperty> properties;
     std::vector<GeneratedVMTypeProperty> commands;
+    std::vector<GeneratedVMTypeProperty> events;
 };
 
 static VMTypeBuilderState g_builder_state;
@@ -384,6 +481,20 @@ double gm_function_create_vm_type_add_vm_definition(char* property_name, char* v
     }
 
     return 1;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_create_vm_type_add_event(char* property_name)
+{
+    g_builder_state.events.emplace_back(GeneratedVMTypeProperty{
+        Noesis::TypeOf<Noesis::BaseComponent>(),
+        property_name,
+        "",
+        VMParamType::number,
+        false
+    });
+
+    return 0;
 }
 
 extern "C" __declspec(dllexport)
@@ -443,7 +554,16 @@ double gm_function_create_vm_type_add_definition(char* property_name, double typ
 extern "C" __declspec(dllexport)
 double gm_function_create_vm_type_end()
 {
-    g_last_created_type = DynamicObject::create_dynamic_type(g_builder_state.type_name, g_builder_state.properties, g_builder_state.commands);
+    g_last_created_type = DynamicObject::create_dynamic_type(
+        g_builder_state.type_name,
+        g_builder_state.properties,
+        g_builder_state.commands,
+        g_builder_state.events);
+
+    g_builder_state.properties.clear();
+    g_builder_state.commands.clear();
+    g_builder_state.events.clear();
+    
     if (g_last_created_type)
     {
         g_registered_types.emplace(g_builder_state.type_name, g_last_created_type);
@@ -466,6 +586,7 @@ double gm_function_create_vm(char* type_name)
     const int id = g_next_id++;
     DynamicObject* instance = new DynamicObject(id, type_name, it->second);
     instance->register_commands();
+    instance->register_events();
     g_vm_instances[id] = instance;
 
     return static_cast<double>(id);
@@ -533,6 +654,10 @@ double gm_function_vm_process_read_buffer()
             // end of message
             break;
         }
+
+        uint8_t is_event  = 0;
+        memcpy(&is_event, message_read_buffer_current, sizeof(uint8_t));
+        message_read_buffer_current += sizeof(uint8_t);
         
         auto vm = g_vm_instances.find(static_cast<int>(view_model_id))->second;
         
@@ -544,17 +669,63 @@ double gm_function_vm_process_read_buffer()
         std::string param_name(str_start, length);
         message_read_buffer_current += length + 1;
 
-        const GeneratedVMTypeProperty* property_data = type_data.find_command_by_name(param_name);
-
-        if (property_data->is_collection)
+        if (static_cast<bool>(is_event))
         {
-            uint32_t expected_count  = 0;
-            memcpy(&expected_count, message_read_buffer_current, sizeof(uint32_t));
-            message_read_buffer_current += sizeof(uint32_t);
+            vm->ExecuteEvent(param_name.c_str());   
+        }
+        else
+        {
+            const GeneratedVMTypeProperty* property_data = type_data.find_command_by_name(param_name);
 
-            Noesis::Ptr<Noesis::ObservableCollection<Noesis::BaseComponent>> collection = *new Noesis::ObservableCollection<Noesis::BaseComponent>();
-            
-            for (uint32_t index = 0; index < expected_count; index++)
+            if (property_data->is_collection)
+            {
+                uint32_t expected_count  = 0;
+                memcpy(&expected_count, message_read_buffer_current, sizeof(uint32_t));
+                message_read_buffer_current += sizeof(uint32_t);
+
+                Noesis::Ptr<Noesis::ObservableCollection<Noesis::BaseComponent>> collection = *new Noesis::ObservableCollection<Noesis::BaseComponent>();
+                
+                for (uint32_t index = 0; index < expected_count; index++)
+                {
+                    switch (property_data->vm_param_type)
+                    {
+                    case VMParamType::string:
+                        {
+                            const char* val_str_start = message_read_buffer_current;
+                            size_t val_length = std::strlen(val_str_start);
+                            std::string value(val_str_start, val_length);
+                            message_read_buffer_current += val_length + 1;
+                
+                            collection->Add(Noesis::Boxing::Box<Noesis::String>(value.c_str()));
+                            break;
+                        }
+                    case VMParamType::number:
+                        {
+                            float value  = 0;
+                            memcpy(&value, message_read_buffer_current, sizeof(float));
+                            message_read_buffer_current += sizeof(float);
+
+                            collection->Add(Noesis::Boxing::Box<float>(value));
+                            break;
+                        }
+                    
+                    case VMParamType::view_model:
+                        {
+                            uint32_t ref_id  = 0;
+                            memcpy(&ref_id, message_read_buffer_current, sizeof(uint32_t));
+                            message_read_buffer_current += sizeof(uint32_t);
+
+                            auto ref_vm = g_vm_instances.find(static_cast<int>(ref_id))->second;
+                            collection->Add(ref_vm);
+                            break;
+                        }
+                        break;
+                    }
+                }
+
+                vm->SetValueNoEvent(param_name, collection);
+            }
+            else
             {
                 switch (property_data->vm_param_type)
                 {
@@ -564,8 +735,8 @@ double gm_function_vm_process_read_buffer()
                         size_t val_length = std::strlen(val_str_start);
                         std::string value(val_str_start, val_length);
                         message_read_buffer_current += val_length + 1;
-            
-                        collection->Add(Noesis::Boxing::Box<Noesis::String>(value.c_str()));
+                
+                        vm->SetValueNoEvent(param_name, Noesis::Boxing::Box<Noesis::String>(value.c_str()));
                         break;
                     }
                 case VMParamType::number:
@@ -573,11 +744,9 @@ double gm_function_vm_process_read_buffer()
                         float value  = 0;
                         memcpy(&value, message_read_buffer_current, sizeof(float));
                         message_read_buffer_current += sizeof(float);
-
-                        collection->Add(Noesis::Boxing::Box<float>(value));
+                        vm->SetValueNoEvent(param_name, Noesis::Boxing::Box(value));
                         break;
                     }
-                
                 case VMParamType::view_model:
                     {
                         uint32_t ref_id  = 0;
@@ -585,50 +754,20 @@ double gm_function_vm_process_read_buffer()
                         message_read_buffer_current += sizeof(uint32_t);
 
                         auto ref_vm = g_vm_instances.find(static_cast<int>(ref_id))->second;
-                        collection->Add(ref_vm);
+                        vm->SetValueNoEvent(param_name, Noesis::Ptr<DynamicObject>(ref_vm));
                         break;
                     }
-                    break;
-                }
-            }
-
-            vm->SetValueNoEvent(param_name, collection);
-        }
-        else
-        {
-            switch (property_data->vm_param_type)
-            {
-            case VMParamType::string:
-                {
-                    const char* val_str_start = message_read_buffer_current;
-                    size_t val_length = std::strlen(val_str_start);
-                    std::string value(val_str_start, val_length);
-                    message_read_buffer_current += val_length + 1;
-            
-                    vm->SetValueNoEvent(param_name, Noesis::Boxing::Box<Noesis::String>(value.c_str()));
-                    break;
-                }
-            case VMParamType::number:
-                {
-                    float value  = 0;
-                    memcpy(&value, message_read_buffer_current, sizeof(float));
-                    message_read_buffer_current += sizeof(float);
-                    vm->SetValueNoEvent(param_name, Noesis::Boxing::Box(value));
-                    break;
-                }
-            case VMParamType::view_model:
-                {
-                    uint32_t ref_id  = 0;
-                    memcpy(&ref_id, message_read_buffer_current, sizeof(uint32_t));
-                    message_read_buffer_current += sizeof(uint32_t);
-
-                    auto ref_vm = g_vm_instances.find(static_cast<int>(ref_id))->second;
-                    vm->SetValueNoEvent(param_name, Noesis::Ptr<DynamicObject>(ref_vm));
-                    break;
                 }
             }
         }
     }
 
+    return 1;
+}
+
+extern "C" __declspec(dllexport)
+double gm_function_load_application_resources(char* path)
+{
+    Noesis::GUI::LoadApplicationResources(path);
     return 1;
 }

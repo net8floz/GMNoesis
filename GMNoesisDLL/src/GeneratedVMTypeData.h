@@ -31,6 +31,7 @@ struct GeneratedVMTypeData
     std::string type_name;
     std::vector<GeneratedVMTypeProperty> properties;
     std::vector<GeneratedVMTypeProperty> commands;
+    std::vector<GeneratedVMTypeProperty> events;
 
     const GeneratedVMTypeProperty* find_property_by_name(const std::string& property_name) const
     {
@@ -48,6 +49,19 @@ struct GeneratedVMTypeData
     const GeneratedVMTypeProperty* find_command_by_name(const std::string& property_name) const
     {
         for (auto& it : properties)
+        {
+            if (it.property_name == property_name)
+            {
+                return &it;
+            }
+        }
+
+        return nullptr;
+    }
+
+    const GeneratedVMTypeProperty* find_event_by_name(const std::string& property_name) const
+    {
+        for (auto& it : events)
         {
             if (it.property_name == property_name)
             {

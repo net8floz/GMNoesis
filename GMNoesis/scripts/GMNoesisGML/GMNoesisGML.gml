@@ -33,6 +33,10 @@ function GMNoesis() {
 				continue;	
 			}
 			
+			if (_name == "events") {
+				continue;	
+			}
+			
 			var _type = _definition[$ _name];
 			
 			var _is_collection = is_array(_type);
@@ -71,6 +75,26 @@ function GMNoesis() {
 				noesis_vm_type_add_definition(_name, _type, _is_collection,  _is_command);
 			}
 		}
+		
+		if (is_struct(_definition[$ "events"])) {
+			var _events = _definition.events;
+			
+			var _names = struct_get_names(_events);
+			for (var _i = 0; _i < array_length(_names); _i++) {
+				var _name = _names[_i];
+				
+				// todo: support arguments
+				//var _type = _events[$ _name];
+				//var _type = _definition[$ _name];
+			
+				//var _is_collection = is_array(_type);
+				//if (_is_collection) {
+				//	_type = _type[0];	
+				//}
+
+				noesis_vm_type_add_event(_name);
+			}
+		}
 	
 		noesis_vm_type_end();
 	
@@ -102,6 +126,28 @@ function GMNoesisVM(_type_name, _definition) constructor {
 	var _names = struct_get_names(_definition);
 	for (var _i = 0; _i < array_length(_names); _i++) {
 		var _name = _names[_i];
+		
+		if (_name == "commands") {
+			continue;	
+		}
+		
+		if (_name == "events") {
+			
+			var _event_names = struct_get_names(_definition.events);
+			for (var _ii = 0; _ii < array_length(_event_names); _ii++) {
+				var _event_name = _event_names[_ii];
+				var _this = self;
+				self[$ $"execute_{_event_name}"] = method({ this: _this, event_name: _event_name}, function(){
+					buffer_write(GMNoesis.read_buffer, buffer_u32, this.handle);
+					buffer_write(GMNoesis.read_buffer, buffer_u8, /* is_event = */ 1);
+					buffer_write(GMNoesis.read_buffer, buffer_string, event_name);
+				});
+			
+			}
+			
+			continue;
+		}
+		
 		var _type = definition[$ _name];
 		var _is_collection = is_array(_type);
 		
@@ -118,6 +164,7 @@ function GMNoesisVM(_type_name, _definition) constructor {
 			this[$ name] = _val;
 			
 			buffer_write(GMNoesis.read_buffer, buffer_u32, this.handle);
+			buffer_write(GMNoesis.read_buffer, buffer_u8, /* is_event = */ 0);
 			buffer_write(GMNoesis.read_buffer, buffer_string, name);
 			
 			if (is_collection) {

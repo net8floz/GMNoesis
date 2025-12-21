@@ -41,6 +41,7 @@ endif()
 target_link_libraries(GMNoesis PRIVATE
     d2d1
     d3d11
+    dcomp
     dxgi
     ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/Lib/windows_x86_64//Noesis.lib
     ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/Lib/windows_x86_64/NoesisApp.lib
