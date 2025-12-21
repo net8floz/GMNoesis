@@ -4,7 +4,6 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <ostream>
-#include <dxgi1_2.h>
 #include <thread>
 #include <NsGui/IntegrationAPI.h>
 #include <NsGui/IView.h>
@@ -17,7 +16,6 @@
 #include <NsGui/Uri.h>
 #include <NsGui/FrameworkElement.h>
 #include <NsCore/HighResTimer.h>
-#include <NsApp/Interaction.h>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -30,20 +28,19 @@
 #include "NineSliceImage.h"
 #include "VMWriteMessage.h"
 #include "Windows/WindowsKeys.h"
-#include <dcomp.h>     
+#include <dcomp.h>
+#include <random>
 
-
-static HWND noesis_hwnd = nullptr;
 static HWND game_hwnd = nullptr;
 
-static IDXGISwapChain1* swap_chain = nullptr;
-static ID3D11Device* d3d_device = nullptr;
-static ID3D11DeviceContext* d3d_context = nullptr;
-static ID3D11RenderTargetView* render_target_view = nullptr;
-static ID3D11DepthStencilView* depth_stencil_view = nullptr;
+static ID3D11Device* game_device = nullptr;
+static ID3D11DeviceContext* game_context = nullptr;
 
-static int g_width = 1280;
-static int g_height = 720;
+static ID3D11Texture2D* game_back_buffer = nullptr;
+static ID3D11RenderTargetView* render_target_view = nullptr;
+
+static int g_width = 0;
+static int g_height = 0;
 
 static Noesis::Ptr<Noesis::IView> view;
 static Noesis::Ptr<Noesis::RenderDevice> render_device;
@@ -51,53 +48,14 @@ static Noesis::Ptr<Noesis::RenderDevice> render_device;
 static HHOOK hHook;
 static uint64_t start_ticks;
 
-NoesisApp::BehaviorCollection* behavior_collection;
-
-static void render_frame()
-{
-    static bool view_init = false;
-    
-     if (!view_init)
-     {
-         if (view)
-         {
-             view->GetRenderer()->Init(render_device);
-             view_init = true;
-         }
-     }
-    
-     if (view)
-     {
-         view->GetRenderer()->UpdateRenderTree();
-         view->GetRenderer()->RenderOffscreen();
-     }
-
-    
-    constexpr float clear_color[4] = { 0, 0, 0, 0 }; 
-    d3d_context->OMSetRenderTargets(1, &render_target_view, nullptr);
-    d3d_context->ClearRenderTargetView(render_target_view, clear_color);
-
-    if (view)
-    {
-        view->GetRenderer()->Render();
-    }
-    D3D11_VIEWPORT viewport = {0, 0, (float)(g_width), (float)(g_height), 0.0f, 1.0f};
-    d3d_context->RSSetViewports(1, &viewport);
-    swap_chain->Present(1, 0);
-
-}
-
-LRESULT CALLBACK overlay_proc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
-{
-    return DefWindowProc(hwnd, msg, w_param, l_param);
-}
-
 LRESULT CALLBACK hook_proc(int n_code, WPARAM w_param, LPARAM l_param)
 {
     if (n_code >= 0 && w_param == PM_REMOVE)
     {
         MSG* msg = (MSG*)l_param;
 
+        bool update_window_position = false;
+        
         if (view)
         {
 
@@ -152,183 +110,15 @@ LRESULT CALLBACK hook_proc(int n_code, WPARAM w_param, LPARAM l_param)
             case WM_SIZE:
             case WM_MOVE:
             case WM_MOVING:
-                RECT parentRect;
-    
-                if (GetWindowRect(game_hwnd, &parentRect))
-                {
-                    g_width = parentRect.right - parentRect.left;
-                    g_height = parentRect.bottom - parentRect.top;
 
-                    view->SetSize(g_width, g_height);
-                    
-                    SetWindowPos(noesis_hwnd, HWND_TOPMOST,
-                                 parentRect.left, parentRect.top,
-                                 g_width, g_height,
-                                 SWP_NOACTIVATE | SWP_NOZORDER);
-                }
+                update_window_position = true;
 
                 break;
             }
         }
-
-        if (msg->message == WM_TIMER && msg->wParam == 1)
-        {
-            double time = Noesis::HighResTimer::Seconds(Noesis::HighResTimer::Ticks() - start_ticks);
-            if (view)
-            {
-
-
-                RECT parentRect;
-    
-                if (GetWindowRect(game_hwnd, &parentRect))
-                {
-                    g_width = parentRect.right - parentRect.left;
-                    g_height = parentRect.bottom - parentRect.top;
-
-                    view->SetSize(g_width, g_height);
-                    
-                    SetWindowPos(noesis_hwnd, HWND_TOPMOST,
-                                 parentRect.left, parentRect.top,
-                                 g_width, g_height,
-                                 SWP_NOACTIVATE | SWP_NOZORDER);
-                }
-                
-                view->Update(time);
-
-            }
-        }
     }
-
+    
     return CallNextHookEx(NULL, n_code, w_param, l_param);
-}
-
-static void overlay_thread()
-{
-    HINSTANCE h_instance = GetModuleHandle(NULL);
-    
-    WNDCLASS wc = {};
-    wc.lpfnWndProc = overlay_proc;
-    wc.hInstance = h_instance;
-    wc.lpszClassName = TEXT("overlay_class");
-    wc.hbrBackground = nullptr;
-    RegisterClass(&wc);
-
-    noesis_hwnd = CreateWindowEx(
-        WS_EX_LAYERED | WS_EX_TRANSPARENT,
-        TEXT("overlay_class"), TEXT(""),
-        WS_VISIBLE | WS_POPUP,
-        0, 0, g_width, g_height,
-        nullptr, nullptr, h_instance, NULL);
-
-    if (!noesis_hwnd) {
-        std::cerr << "CreateWindowEx failed: " << GetLastError() << std::endl;
-        return;
-    }
-
-    SetWindowLongPtr(noesis_hwnd, GWLP_HWNDPARENT, (LONG_PTR)game_hwnd);
-    
-    D3D_FEATURE_LEVEL feature_level;
-    HRESULT hr = D3D11CreateDevice(
-        nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
-        nullptr, 0, D3D11_SDK_VERSION,
-        &d3d_device, &feature_level, &d3d_context);
-
-    if (FAILED(hr)) {
-        std::cerr << "D3D11CreateDevice failed: 0x" << std::hex << hr << std::endl;
-        return;
-    }
- 
-    DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
-    swap_chain_desc.Width = g_width;
-    swap_chain_desc.Height = g_height;
-    swap_chain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    swap_chain_desc.BufferCount = 2;
-    swap_chain_desc.SampleDesc.Count = 1;
-    swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-    swap_chain_desc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
-    swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-
-    IDXGIFactory2* dxgi_factory = nullptr;
-    hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory2), (void**)&dxgi_factory);
-    if (FAILED(hr)) {
-        std::cerr << "CreateDXGIFactory2 failed: 0x" << std::hex << hr << std::endl;
-        return;
-    }
-
-    hr = dxgi_factory->CreateSwapChainForComposition(d3d_device, &swap_chain_desc, nullptr, &swap_chain);
-    dxgi_factory->Release();
-    if (FAILED(hr)) {
-        std::cerr << "CreateSwapChainForComposition failed: 0x" << std::hex << hr << std::endl;
-        return;
-    }
-    
-    IDXGIDevice* dxgi_device = nullptr;
-    hr = d3d_device->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgi_device);
-    if (FAILED(hr)) {
-        std::cerr << "QueryInterface for IDXGIDevice failed: 0x" << std::hex << hr << std::endl;
-        return;
-    }
-    
-    IDCompositionDevice* dcomp_device = nullptr;
-    hr = DCompositionCreateDevice(dxgi_device, __uuidof(IDCompositionDevice), (void**)&dcomp_device);
-    dxgi_device->Release();
-    if (FAILED(hr)) {
-        std::cerr << "DCompositionCreateDevice failed: 0x" << std::hex << hr << std::endl;
-        return;
-    }
-    
-    IDCompositionTarget* dcomp_target = nullptr;
-    hr = dcomp_device->CreateTargetForHwnd(noesis_hwnd, TRUE, &dcomp_target);
-    if (FAILED(hr)) {
-        std::cerr << "CreateTargetForHwnd failed: 0x" << std::hex << hr << std::endl;
-        return;
-    }
-
-    IDCompositionVisual* dcomp_visual = nullptr;
-    hr = dcomp_device->CreateVisual(&dcomp_visual);
-    if (FAILED(hr)) {
-        std::cerr << "CreateVisual failed: 0x" << std::hex << hr << std::endl;
-        return;
-    }
-
-    hr = dcomp_visual->SetContent(swap_chain);
-    if (FAILED(hr)) {
-        std::cerr << "SetContent failed: 0x" << std::hex << hr << std::endl;
-        return;
-    }
-
-    hr = dcomp_target->SetRoot(dcomp_visual);
-    if (FAILED(hr)) {
-        std::cerr << "SetRoot failed: 0x" << std::hex << hr << std::endl;
-        return;
-    }
-
-    hr = dcomp_device->Commit();
-    if (FAILED(hr)) {
-        std::cerr << "Commit failed: 0x" << std::hex << hr << std::endl;
-        return;
-    }
-    
-    ID3D11Texture2D* back_buffer = nullptr;
-    swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&back_buffer);
-    d3d_device->CreateRenderTargetView(back_buffer, nullptr, &render_target_view);
-    back_buffer->Release();
-
-    render_device = NoesisApp::D3D11Factory::CreateDevice(d3d_context, false);
-    
-    MSG msg = {};
-
-    for (;;)
-    {
-        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-        {
-            if (msg.message == WM_QUIT) return;
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-
-        render_frame();
-    }
 }
 
 extern "C" void NsRegisterReflectionAppInteractivity();
@@ -336,6 +126,153 @@ extern "C" void NsInitPackageAppInteractivity();
 
 static char* message_read_buffer_start = nullptr; 
 static char* message_read_buffer_current = nullptr;
+
+ID3D11Device* gDevice = nullptr;
+ID3D11DeviceContext* gContext = nullptr;
+ID3D11RenderTargetView* gRTV = nullptr;
+
+typedef HRESULT(__stdcall* Present_t)(IDXGISwapChain*, UINT, UINT);
+typedef HRESULT(__stdcall* ResizeBuffers_t)(IDXGISwapChain*, UINT, UINT, UINT, DXGI_FORMAT, UINT);
+
+Present_t oPresent = nullptr;
+ResizeBuffers_t oResizeBuffers = nullptr;
+
+static void* present_hook_ptr = nullptr;
+static void* resize_hook_ptr = nullptr;
+void initialize_swap_hooks()
+{
+    // Create dummy device and swap chain to get vtable
+    DXGI_SWAP_CHAIN_DESC sd = {};
+    sd.BufferCount = 1;
+    sd.BufferDesc.Width = 1;
+    sd.BufferDesc.Height = 1;
+    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    sd.OutputWindow = GetForegroundWindow();
+
+    sd.SampleDesc.Count = 1;
+    sd.Windowed = TRUE;
+
+    IDXGISwapChain* swapChain = nullptr;
+    ID3D11Device* device = nullptr;
+    ID3D11DeviceContext* context = nullptr;
+
+    if (SUCCEEDED(D3D11CreateDeviceAndSwapChain(
+        nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
+        nullptr, 0, D3D11_SDK_VERSION, &sd, &swapChain, &device, nullptr, &context)))
+    {
+        void** vtable = *reinterpret_cast<void***>(swapChain);
+        
+        present_hook_ptr = vtable[8]; 
+        resize_hook_ptr = vtable[13];
+        swapChain->Release();
+        device->Release();
+        context->Release();
+    }
+}
+
+HRESULT __stdcall present_hook(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
+{
+    if (game_device && view)
+    {
+        double time = Noesis::HighResTimer::Seconds(Noesis::HighResTimer::Ticks() - start_ticks);
+        if (view)
+        {
+
+            view->Update(time);
+            
+            view->GetRenderer()->UpdateRenderTree();
+            view->GetRenderer()->RenderOffscreen();
+            
+            game_context->OMSetRenderTargets(1, &render_target_view, nullptr);
+            
+            constexpr float clear_color[4] = { 0, 0, 0, 1 }; 
+            D3D11_VIEWPORT viewport = {0, 0, (float)(g_width), (float)(g_height), 0.0f, 1.0f};
+            game_context->RSSetViewports(1, &viewport);
+    
+            game_context->ClearRenderTargetView(render_target_view, clear_color);
+       
+            view->GetRenderer()->Render();
+        }
+    }
+
+    return oPresent(pSwapChain, SyncInterval, Flags);
+}
+
+HRESULT __stdcall resize_hook(IDXGISwapChain* pSwapChain, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat, UINT SwapChainFlags)
+{
+    if (render_target_view) { render_target_view->Release(); render_target_view = nullptr; }
+    if (game_back_buffer) { game_back_buffer->Release(); game_back_buffer = nullptr; }
+    
+    HRESULT hr = oResizeBuffers(pSwapChain, BufferCount, Width, Height, NewFormat, SwapChainFlags);
+    
+    if (SUCCEEDED(hr))
+    {
+        if (!game_device)
+        {
+            pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&game_device);
+            game_device->GetImmediateContext(&game_context);
+            render_device = NoesisApp::D3D11Factory::CreateDevice(game_context, false);
+            view->GetRenderer()->Init(render_device);
+        }
+
+        if (SUCCEEDED(pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&game_back_buffer)))
+        {
+            game_device->CreateRenderTargetView(game_back_buffer, nullptr, &render_target_view);
+        }
+
+        if (view)
+        {
+            g_width = Width;
+            g_height = Height;
+            view->SetSize(Width, Height);
+        }
+    }
+
+    return hr;
+}
+
+void hook_swap_chain()
+{
+    DXGI_SWAP_CHAIN_DESC sd = {};
+    sd.BufferCount = 1;
+    sd.BufferDesc.Width = 1;
+    sd.BufferDesc.Height = 1;
+    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    sd.OutputWindow = GetForegroundWindow();
+
+    sd.SampleDesc.Count = 1;
+    sd.Windowed = TRUE;
+
+    IDXGISwapChain* swapChain = nullptr;
+    ID3D11Device* device = nullptr;
+    ID3D11DeviceContext* context = nullptr;
+
+    if (SUCCEEDED(D3D11CreateDeviceAndSwapChain(
+        nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
+        nullptr, 0, D3D11_SDK_VERSION, &sd, &swapChain, &device, nullptr, &context)))
+    {
+        void** vtable = *reinterpret_cast<void***>(swapChain);
+        DWORD oldProtect;
+
+        // present
+        VirtualProtect(&vtable[8], sizeof(void*), PAGE_EXECUTE_READWRITE, &oldProtect);
+        oPresent = reinterpret_cast<Present_t>(vtable[8]);
+        vtable[8] = reinterpret_cast<void*>(&present_hook);
+        VirtualProtect(&vtable[8], sizeof(void*), oldProtect, &oldProtect);
+
+        // resize
+        VirtualProtect(&vtable[13], sizeof(void*), PAGE_EXECUTE_READWRITE, &oldProtect);
+        oResizeBuffers = reinterpret_cast<ResizeBuffers_t>(vtable[13]);
+        vtable[13] = reinterpret_cast<void*>(&resize_hook);
+        VirtualProtect(&vtable[13], sizeof(void*), oldProtect, &oldProtect);
+
+        swapChain->Release();
+        device->Release();
+        context->Release();
+    }
+}
 
 extern "C" __declspec(dllexport) 
 double gm_function_initialize(char* ptr, const double fps, char *event_read_buffer, char* event_write_buffer, const double buffer_size)
@@ -347,10 +284,9 @@ double gm_function_initialize(char* ptr, const double fps, char *event_read_buff
     VMWriteMessage::reset_write_buffer();
 
     message_read_buffer_start = event_read_buffer;
-
-    HWND parent_hwnd = GetParent(game_hwnd);  
+    
     RECT rect;
-    if (GetClientRect(parent_hwnd, &rect))
+    if (GetClientRect(game_hwnd, &rect))
     {
         g_width = rect.right - rect.left;
         g_height = rect.bottom - rect.top;
@@ -378,15 +314,11 @@ double gm_function_initialize(char* ptr, const double fps, char *event_read_buff
     Noesis::GUI::LoadApplicationResources(NoesisApp::Theme::DarkBlue());
     
     start_ticks = Noesis::HighResTimer::Ticks();
-    
-    DWORD gameThreadId = GetWindowThreadProcessId(game_hwnd, nullptr);
-    hHook = SetWindowsHookEx(WH_GETMESSAGE, hook_proc, nullptr, gameThreadId);
 
-    SetTimer(game_hwnd, 1, 1, nullptr);
+    hHook = SetWindowsHookEx(WH_GETMESSAGE, hook_proc, nullptr, GetWindowThreadProcessId(game_hwnd, nullptr));
     
-    std::thread thread(overlay_thread);
-    thread.detach();
-
+    hook_swap_chain();
+    
     return 1;
 }
 
