@@ -185,13 +185,9 @@ HRESULT __stdcall present_hook(IDXGISwapChain* pSwapChain, UINT SyncInterval, UI
             view->GetRenderer()->RenderOffscreen();
             
             game_context->OMSetRenderTargets(1, &render_target_view, nullptr);
-            
-            constexpr float clear_color[4] = { 0, 0, 0, 1 }; 
             D3D11_VIEWPORT viewport = {0, 0, (float)(g_width), (float)(g_height), 0.0f, 1.0f};
             game_context->RSSetViewports(1, &viewport);
-    
-            game_context->ClearRenderTargetView(render_target_view, clear_color);
-       
+            
             view->GetRenderer()->Render();
         }
     }
