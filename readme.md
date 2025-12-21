@@ -1,3 +1,7 @@
+## Warning
+
+Noesis Studio which is the focus of this application is in BETA and UI designed in Noesis Studio can't actually be used in their runtime ( yes this is strange. ). It is probably best not to waste your time here for now unless you want to contribute to the plugin or just test it out.
+
 # GMNoesis 
 NoesisGUI is a really sophisticated UI that is rendered on top of your game. It has a ton of features and fair indie plans. [https://www.noesisengine.com/noesisgui/](https://www.noesisengine.com/noesisgui/)
 
