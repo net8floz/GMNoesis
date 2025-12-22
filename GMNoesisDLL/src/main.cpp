@@ -42,23 +42,22 @@ static ID3D11RenderTargetView* render_target_view = nullptr;
 static int g_width = 0;
 static int g_height = 0;
 
-static Noesis::Ptr<Noesis::IView> view;
-static Noesis::Ptr<Noesis::RenderDevice> render_device;
+static Noesis::Ptr<Noesis::IView> view = nullptr;
+static Noesis::Ptr<Noesis::RenderDevice> render_device = nullptr;
 
 static HHOOK hHook;
 static uint64_t start_ticks;
+
+static bool init_renderer = false;
 
 LRESULT CALLBACK hook_proc(int n_code, WPARAM w_param, LPARAM l_param)
 {
     if (n_code >= 0 && w_param == PM_REMOVE)
     {
         MSG* msg = (MSG*)l_param;
-
-        bool update_window_position = false;
         
         if (view)
         {
-
             switch (msg->message)
             {
             
@@ -106,18 +105,28 @@ LRESULT CALLBACK hook_proc(int n_code, WPARAM w_param, LPARAM l_param)
             case WM_MOUSEWHEEL:
                 view->MouseWheel(GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam), GET_WHEEL_DELTA_WPARAM(msg->wParam));
                 break;
-            
-            case WM_SIZE:
-            case WM_MOVE:
-            case WM_MOVING:
-
-                update_window_position = true;
-
-                break;
+            }
+        }
+    
+        if (msg->message == WM_TIMER && msg->wParam == 1)
+        {
+            if (view)
+            {
+                if (init_renderer)
+                {
+                    const double time = Noesis::HighResTimer::Seconds(Noesis::HighResTimer::Ticks() - start_ticks);
+                    view->Update(time);
+                    view->GetRenderer()->UpdateRenderTree();
+                    view->GetRenderer()->RenderOffscreen();
+                }
+                else if (render_device)
+                {
+                    init_renderer = true;
+                    view->GetRenderer()->Init(render_device);
+                }
             }
         }
     }
-    
     return CallNextHookEx(NULL, n_code, w_param, l_param);
 }
 
@@ -175,17 +184,10 @@ HRESULT __stdcall present_hook(IDXGISwapChain* pSwapChain, UINT SyncInterval, UI
 {
     if (game_device && view)
     {
-        double time = Noesis::HighResTimer::Seconds(Noesis::HighResTimer::Ticks() - start_ticks);
-        if (view)
+        if (view && init_renderer)
         {
-
-            view->Update(time);
-            
-            view->GetRenderer()->UpdateRenderTree();
-            view->GetRenderer()->RenderOffscreen();
-            
             game_context->OMSetRenderTargets(1, &render_target_view, nullptr);
-            D3D11_VIEWPORT viewport = {0, 0, (float)(g_width), (float)(g_height), 0.0f, 1.0f};
+            D3D11_VIEWPORT viewport = {0, 0, (float)(g_width), (float)(g_height), -1000, 1000.f};
             game_context->RSSetViewports(1, &viewport);
             
             view->GetRenderer()->Render();
@@ -208,8 +210,7 @@ HRESULT __stdcall resize_hook(IDXGISwapChain* pSwapChain, UINT BufferCount, UINT
         {
             pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&game_device);
             game_device->GetImmediateContext(&game_context);
-            render_device = NoesisApp::D3D11Factory::CreateDevice(game_context, false);
-            view->GetRenderer()->Init(render_device);
+            render_device = NoesisApp::D3D11Factory::CreateDevice(game_context, /* srgb */ false);
         }
 
         if (SUCCEEDED(pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&game_back_buffer)))
@@ -314,6 +315,8 @@ double gm_function_initialize(char* ptr, const double fps, char *event_read_buff
     hHook = SetWindowsHookEx(WH_GETMESSAGE, hook_proc, nullptr, GetWindowThreadProcessId(game_hwnd, nullptr));
     
     hook_swap_chain();
+
+    SetTimer(game_hwnd, 1, 1, nullptr);
     
     return 1;
 }

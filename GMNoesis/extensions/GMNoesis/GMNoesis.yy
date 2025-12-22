@@ -16,7 +16,6 @@
   "exportToGame":true,
   "extensionVersion":"0.0.1",
   "files":[
-    {"$GMExtensionFile":"v1","%Name":"","constants":[],"copyToTargets":-1,"filename":"GMNoesis.pdb","final":"","functions":[],"init":"","kind":4,"name":"","origname":"","ProxyFiles":[],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
     {"$GMExtensionFile":"v1","%Name":"","constants":[],"copyToTargets":3035426178912485614,"filename":"GMNoesis.dll","final":"noesis_cleanup","functions":[
         {"$GMExtensionFunction":"","%Name":"noesis_initialize","argCount":0,"args":[1,1,1,1,],"documentation":"/// @param argument0 window_handle\r\n/// @param argument1 fps_limit\r\n/// @param argument1 read_buffer\r\n/// @param argument1 write_buffer","externalName":"gm_function_initialize","help":"","hidden":true,"kind":1,"name":"noesis_initialize","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
         {"$GMExtensionFunction":"","%Name":"noesis_load_view","argCount":0,"args":[1,],"documentation":"/// @param argument0 filename","externalName":"gm_function_load_xaml","help":"","hidden":false,"kind":1,"name":"noesis_load_view","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
@@ -38,7 +37,6 @@
         {"$GMExtensionFunction":"","%Name":"noesis_load_application_resources","argCount":0,"args":[1,],"documentation":"","externalName":"gm_function_load_application_resources","help":"","hidden":false,"kind":1,"name":"noesis_load_application_resources","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
         {"$GMExtensionFunction":"","%Name":"noesis_vm_type_add_event","argCount":0,"args":[1,],"documentation":"","externalName":"gm_function_create_vm_type_add_event","help":"","hidden":false,"kind":1,"name":"noesis_vm_type_add_event","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
       ],"init":"","kind":1,"name":"","origname":"","ProxyFiles":[],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
-    {"$GMExtensionFile":"v1","%Name":"","constants":[],"copyToTargets":-1,"filename":"NoesisApp.pdb","final":"","functions":[],"init":"","kind":4,"name":"","origname":"","ProxyFiles":[],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
     {"$GMExtensionFile":"v1","%Name":"","constants":[],"copyToTargets":-1,"filename":"NoesisApp.dll","final":"","functions":[],"init":"","kind":1,"name":"","origname":"","ProxyFiles":[],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
     {"$GMExtensionFile":"v1","%Name":"","constants":[],"copyToTargets":-1,"filename":"Noesis.dll","final":"","functions":[],"init":"","kind":1,"name":"","origname":"","ProxyFiles":[],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
   ],

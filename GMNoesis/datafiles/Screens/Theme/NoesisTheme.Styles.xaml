@@ -1021,7 +1021,7 @@
         <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="1" Grid.Row="0" Orientation="Vertical" MaxWidth="{TemplateBinding MinWidth}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" ViewportSize="{TemplateBinding ViewportHeight}" Minimum="0" Maximum="{TemplateBinding ScrollableHeight}" Opacity="0"/>
       </Grid>
     </Border>
-    <!-- <ControlTemplate.Resources>
+    <ControlTemplate.Resources>
       <Storyboard x:Key="Anim.ShowBars" BeginTime="0:0:0.1">
         <DoubleAnimation Storyboard.TargetName="PART_HorizontalScrollBar" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.1" AccelerationRatio="0.5" DecelerationRatio="0.5"/>
         <DoubleAnimation Storyboard.TargetName="PART_VerticalScrollBar" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.1" AccelerationRatio="0.5" DecelerationRatio="0.5"/>
@@ -1036,7 +1036,7 @@
       <Storyboard x:Key="Anim.HideCorner" BeginTime="0:0:2">
         <DoubleAnimation Storyboard.TargetName="Corner" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.15" AccelerationRatio="0.75" DecelerationRatio="0.25"/>
       </Storyboard>
-    </ControlTemplate.Resources> -->
+    </ControlTemplate.Resources>
     <ControlTemplate.Triggers>
       <Trigger Property="IsKeyboardFocusWithin" Value="True">
         <Setter Property="IsEnabled" Value="True" TargetName="ShowBarsRef"/>
@@ -1044,28 +1044,28 @@
       <Trigger Property="IsMouseOver" Value="True">
         <Setter Property="IsEnabled" Value="True" TargetName="ShowBarsRef"/>
       </Trigger>
-      <!-- <Trigger Property="IsEnabled" Value="True" SourceName="ShowBarsRef">
+      <Trigger Property="IsEnabled" Value="True" SourceName="ShowBarsRef">
         <Trigger.EnterActions>
           <BeginStoryboard Storyboard="{StaticResource Anim.ShowBars}"/>
         </Trigger.EnterActions>
         <Trigger.ExitActions>
           <BeginStoryboard Storyboard="{StaticResource Anim.HideBars}"/>
         </Trigger.ExitActions>
-      </Trigger> -->
+      </Trigger>
       <Trigger Property="IsMouseOver" Value="True" SourceName="PART_HorizontalScrollBar">
         <Setter Property="IsEnabled" Value="True" TargetName="Corner"/>
       </Trigger>
       <Trigger Property="IsMouseOver" Value="True" SourceName="PART_VerticalScrollBar">
         <Setter Property="IsEnabled" Value="True" TargetName="Corner"/>
       </Trigger>
-      <!-- <Trigger Property="IsEnabled" Value="True" SourceName="Corner">
+      <Trigger Property="IsEnabled" Value="True" SourceName="Corner">
         <Trigger.EnterActions>
           <BeginStoryboard Storyboard="{StaticResource Anim.ShowCorner}"/>
         </Trigger.EnterActions>
         <Trigger.ExitActions>
           <BeginStoryboard Storyboard="{StaticResource Anim.HideCorner}"/>
         </Trigger.ExitActions>
-      </Trigger> -->
+      </Trigger>
     </ControlTemplate.Triggers>
   </ControlTemplate>
   <Style TargetType="ScrollViewer" BasedOn="{StaticResource {x:Type ContentControl}}">
