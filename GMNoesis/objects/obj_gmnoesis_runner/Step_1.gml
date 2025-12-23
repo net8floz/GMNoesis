@@ -33,7 +33,7 @@ if (noesis_vm_prepare_write_buffer_for_reading()) {
 				_property_value = buffer_read(_buffer, buffer_f32);
 				break;
 			case GMNoesisVMType.boolean:
-				_property_value = buffer_read(_buffer, buffer_u8);
+				_property_value = buffer_read(_buffer, buffer_bool);
 				break;
 		}
 		
