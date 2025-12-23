@@ -465,6 +465,16 @@ double gm_function_create_vm_type_add_definition(char* property_name, double typ
             });
         
             break;
+        case VMParamType::boolean:
+            collection.emplace_back(GeneratedVMTypeProperty
+            {
+                Noesis::TypeOf<bool>(),
+                property_name,
+                "",
+                type,
+                false
+            });
+            break;
         case VMParamType::number:
             collection.emplace_back(GeneratedVMTypeProperty
             {
@@ -639,7 +649,14 @@ double gm_function_vm_process_read_buffer()
                             collection->Add(Noesis::Boxing::Box<float>(value));
                             break;
                         }
-                    
+                    case VMParamType::boolean:
+                        {
+                            bool value  =  false;
+                            memcpy(&value, message_read_buffer_current, sizeof(bool));
+                            message_read_buffer_current += sizeof(bool);
+                            collection->Add(Noesis::Boxing::Box(value));
+                            break;
+                        }
                     case VMParamType::view_model:
                         {
                             uint32_t ref_id  = 0;
@@ -675,6 +692,14 @@ double gm_function_vm_process_read_buffer()
                         float value  = 0;
                         memcpy(&value, message_read_buffer_current, sizeof(float));
                         message_read_buffer_current += sizeof(float);
+                        vm->SetValueNoEvent(param_name, Noesis::Boxing::Box(value));
+                        break;
+                    }
+                case VMParamType::boolean:
+                    {
+                        bool value = false;
+                        memcpy(&value, message_read_buffer_current, 1);
+                        message_read_buffer_current += 1;
                         vm->SetValueNoEvent(param_name, Noesis::Boxing::Box(value));
                         break;
                     }

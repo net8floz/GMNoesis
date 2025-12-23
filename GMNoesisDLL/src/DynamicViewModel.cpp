@@ -31,8 +31,7 @@ void DynamicObject::register_commands()
     {
         values[command_property.property_name] = *new DynamicCommand([this, command_name = command_property.property_name](Noesis::BaseComponent* param)
         {
-            Noesis::BaseComponent* out_param = param ? param : Noesis::Boxing::Box<float>(0);
-            VMWriteMessage::write_to_buffer({ handle, true, command_name, Noesis::Ptr<BaseComponent>(out_param) });
+            VMWriteMessage::write_to_buffer({ handle, true, command_name, Noesis::Ptr<BaseComponent>(param) });
         });
     }
 }

@@ -14,6 +14,7 @@ enum class VMParamType
 {
     string,
     number,
+    boolean,
     view_model
 };
 

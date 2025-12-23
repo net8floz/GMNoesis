@@ -1,0 +1,8 @@
+{
+    "XamlStyler": {
+        "AttributesTolerance": 2147483647,
+        "EnableAttributeReordering": false,
+        "EnableAttributeWrapping": false,
+        "AttributeWrappingPosition": "Preserve"
+    }
+}

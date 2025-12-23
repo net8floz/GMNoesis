@@ -2,6 +2,7 @@ enum GMNoesisVMType
 {
 	string,
 	number,
+	boolean,
 	view_model
 }
 
@@ -13,14 +14,26 @@ function GMNoesis() {
 	static defined_types = {};
 	static vm_collection = {};
 	
-	static assert = function(_cnd) {
+	static nassert = function(_cnd) {
 		if (!_cnd) {
 			throw "assert failed";	
 		}
 	}
+
+	static load_view = function(_path) {
+		noesis_load_view(_path);	
+	}
+	
+	static set_view_model = function(_vm) {
+		noesis_set_view_vm(_vm.handle);
+	}
+	
+	static load_resources = function(_path) {
+		noesis_load_application_resources(_path);	
+	}
 	
 	static noesis_define_vm = function(_type_name, _definition) {
-		GMNoesis.assert(is_struct(_definition));
+		GMNoesis.nassert(is_struct(_definition));
 	
 		noesis_vm_type_begin(_type_name);
 	
@@ -175,6 +188,9 @@ function GMNoesisVM(_type_name, _definition) constructor {
 						case GMNoesisVMType.string:
 							buffer_write(GMNoesis.read_buffer, buffer_string, string(_val[_i]));
 							break;
+						case GMNoesisVMType.boolean:
+							buffer_write(GMNoesis.read_buffer, buffer_u8, _val[_i] ? 1 : 0);
+							break;
 						case GMNoesisVMType.number:
 							buffer_write(GMNoesis.read_buffer, buffer_f32, _val[_i]);
 							break;
@@ -186,8 +202,12 @@ function GMNoesisVM(_type_name, _definition) constructor {
 			} else {
 			
 				switch (type) {
+					
 					case GMNoesisVMType.string:
 						buffer_write(GMNoesis.read_buffer, buffer_string, string(_val));
+						break;
+					case GMNoesisVMType.boolean:
+						buffer_write(GMNoesis.read_buffer, buffer_u8, _val ? 1 : 0);
 						break;
 					case GMNoesisVMType.number:
 						buffer_write(GMNoesis.read_buffer, buffer_f32, _val);
@@ -211,6 +231,7 @@ function GMNoesisVM(_type_name, _definition) constructor {
 					self[$ _name] = "";
 					break;
 				case GMNoesisVMType.number:
+				case GMNoesisVMType.boolean:
 					self[$ _name] = 0;
 					break;
 				case GMNoesisVMType.view_model:

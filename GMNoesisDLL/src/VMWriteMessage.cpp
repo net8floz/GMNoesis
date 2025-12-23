@@ -33,22 +33,6 @@ void VMWriteMessage::write_to_buffer(const VMWriteMessage& msg)
     {
         out_buffer_current = out_buffer_start;
     }
-
-    size_t written = out_buffer_current - out_buffer_start;
-    size_t required = sizeof(uint32_t) + msg.property_name.size() + 1;
-    if (msg.boxed_value != nullptr)
-    {
-        const Noesis::Type* type = msg.boxed_value->GetClassType();
-        if (type == Noesis::TypeOf<Noesis::Boxed<int>>()) required += sizeof(int);
-        else if (type == Noesis::TypeOf<Noesis::Boxed<float>>()) required += sizeof(float);
-        else if (type == Noesis::TypeOf<Noesis::Boxed<Noesis::String>>())
-        {
-            Noesis::String val = Noesis::Boxing::Unbox<Noesis::String>(msg.boxed_value);
-            required += val.Size() + 1;
-        }
-    }
-
-    assert(written + required > buffer_size);
     
     memcpy(out_buffer_current, &msg.id, sizeof(uint32_t));
     out_buffer_current += sizeof(uint32_t);
@@ -65,15 +49,21 @@ void VMWriteMessage::write_to_buffer(const VMWriteMessage& msg)
 
     if (type == Noesis::TypeOf<Noesis::Boxed<int>>())
     {
-        int val = Noesis::Boxing::Unbox<int>(msg.boxed_value);
-        memcpy(out_buffer_current, &val, sizeof(int));
-        out_buffer_current += sizeof(int);
+        float val = static_cast<float>(Noesis::Boxing::Unbox<int>(msg.boxed_value));
+        memcpy(out_buffer_current, &val, sizeof(float));
+        out_buffer_current += sizeof(float);
     }
     else if (type == Noesis::TypeOf<Noesis::Boxed<float>>())
     {
         float val = Noesis::Boxing::Unbox<float>(msg.boxed_value);
         memcpy(out_buffer_current, &val, sizeof(float));
         out_buffer_current += sizeof(float);
+    }
+    else if (type == Noesis::TypeOf<Noesis::Boxed<bool>>())
+    {
+        float val = Noesis::Boxing::Unbox<bool>(msg.boxed_value);
+        memcpy(out_buffer_current, &val, sizeof(bool));
+        out_buffer_current += sizeof(bool);
     }
     else if (type == Noesis::TypeOf<Noesis::Boxed<Noesis::String>>())
     {
