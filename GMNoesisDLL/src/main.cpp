@@ -1,5 +1,3 @@
-
-#include <windows.h>
 #include <windowsx.h>
 #include <d3d11.h>
 #include <dxgi.h>
@@ -28,106 +26,88 @@
 #include "NineSliceImage.h"
 #include "VMWriteMessage.h"
 #include "Windows/WindowsKeys.h"
-#include <dcomp.h>
 #include <random>
+#include <wrl/client.h>
 
-static HWND game_hwnd = nullptr;
+static Microsoft::WRL::ComPtr<ID3D11Device> game_device = nullptr;
+static Microsoft::WRL::ComPtr<ID3D11DeviceContext> game_context = nullptr;
 
-static ID3D11Device* game_device = nullptr;
-static ID3D11DeviceContext* game_context = nullptr;
-
-static ID3D11Texture2D* game_back_buffer = nullptr;
-static ID3D11RenderTargetView* render_target_view = nullptr;
-
-static int g_width = 0;
-static int g_height = 0;
-
+static Microsoft::WRL::ComPtr<ID3D11Texture2D> game_back_buffer = nullptr;
+static Microsoft::WRL::ComPtr<ID3D11RenderTargetView> render_target_view = nullptr;
+static Microsoft::WRL::ComPtr<IDXGISwapChain> game_swap_chain = nullptr;
 static Noesis::Ptr<Noesis::IView> view = nullptr;
 static Noesis::Ptr<Noesis::RenderDevice> render_device = nullptr;
 
-static HHOOK hHook;
-static uint64_t start_ticks;
+static WNDPROC original_win_proc = nullptr;
+static uint64_t start_ticks = 0;
+static int g_width = 0;
+static int g_height = 0;
+static HWND game_hwnd = nullptr;
 
 static bool init_renderer = false;
 
-LRESULT CALLBACK hook_proc(int n_code, WPARAM w_param, LPARAM l_param)
+static bool is_safe = false;
+
+LRESULT hook_proc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
 {
-    if (n_code >= 0 && w_param == PM_REMOVE)
+    if (view)
     {
-        MSG* msg = (MSG*)l_param;
-        
-        if (view)
+        switch (msg)
         {
-            switch (msg->message)
+        case WM_TIMER:
+            if (w_param == 69)
             {
-            
-            case WM_KEYDOWN:
-            case WM_SYSKEYDOWN:
+                is_safe = true;
+                KillTimer(hwnd, 69);
+            }
+            break;
+        case WM_KEYDOWN:
+        case WM_SYSKEYDOWN:
+            {
+                if (w_param <= 0xff && GMNoesis::Windows::g_key_table[w_param] != 0)
                 {
-                    if (w_param <= 0xff && GMNoesis::Windows::g_key_table[msg->wParam] != 0)
-                    {
-                        view->KeyDown(static_cast<Noesis::Key>(GMNoesis::Windows::g_key_table[msg->wParam]));
-                        break;
-                    }
-                }
-            case WM_KEYUP:
-            case WM_SYSKEYUP:
-                if (w_param <= 0xff && GMNoesis::Windows::g_key_table[msg->wParam] != 0)
-                {
-                    view->KeyUp(static_cast<Noesis::Key>(GMNoesis::Windows::g_key_table[msg->wParam]));
+                    view->KeyDown(static_cast<Noesis::Key>(GMNoesis::Windows::g_key_table[w_param]));
                     break;
                 }
-                
-            case WM_CHAR:
-                view->Char((uint32_t)msg->wParam);
-                break;
-
-            case WM_MOUSEMOVE:
-                view->MouseMove(GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam));
-                break;
-
-            case WM_LBUTTONDOWN:
-                view->MouseButtonDown(GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam), Noesis::MouseButton_Left);
-                break;
-
-            case WM_LBUTTONUP:
-                view->MouseButtonUp(GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam), Noesis::MouseButton_Left);
-                break;
-
-            case WM_RBUTTONDOWN:
-                view->MouseButtonDown(GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam), Noesis::MouseButton_Right);
-                break;
-
-            case WM_RBUTTONUP:
-                view->MouseButtonUp(GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam), Noesis::MouseButton_Right);
-                break;
-
-            case WM_MOUSEWHEEL:
-                view->MouseWheel(GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam), GET_WHEEL_DELTA_WPARAM(msg->wParam));
-                break;
             }
-        }
-    
-        if (msg->message == WM_TIMER && msg->wParam == 1)
-        {
-            if (view)
+        case WM_KEYUP:
+        case WM_SYSKEYUP:
+            if (w_param <= 0xff && GMNoesis::Windows::g_key_table[w_param] != 0)
             {
-                if (init_renderer)
-                {
-                    const double time = Noesis::HighResTimer::Seconds(Noesis::HighResTimer::Ticks() - start_ticks);
-                    view->Update(time);
-                    view->GetRenderer()->UpdateRenderTree();
-                    view->GetRenderer()->RenderOffscreen();
-                }
-                else if (render_device)
-                {
-                    init_renderer = true;
-                    view->GetRenderer()->Init(render_device);
-                }
+                view->KeyUp(static_cast<Noesis::Key>(GMNoesis::Windows::g_key_table[w_param]));
+                break;
             }
+            
+        case WM_CHAR:
+            view->Char((uint32_t)w_param);
+            break;
+    
+        case WM_MOUSEMOVE:
+            view->MouseMove(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
+            break;
+    
+        case WM_LBUTTONDOWN:
+            view->MouseButtonDown(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param), Noesis::MouseButton_Left);
+            break;
+    
+        case WM_LBUTTONUP:
+            view->MouseButtonUp(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param), Noesis::MouseButton_Left);
+            break;
+    
+        case WM_RBUTTONDOWN:
+            view->MouseButtonDown(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param), Noesis::MouseButton_Right);
+            break;
+    
+        case WM_RBUTTONUP:
+            view->MouseButtonUp(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param), Noesis::MouseButton_Right);
+            break;
+    
+        case WM_MOUSEWHEEL:
+            view->MouseWheel(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param), GET_WHEEL_DELTA_WPARAM(w_param));
+            break;
         }
     }
-    return CallNextHookEx(NULL, n_code, w_param, l_param);
+    return CallWindowProc(original_win_proc, hwnd, msg, w_param, l_param);
 }
 
 extern "C" void NsRegisterReflectionAppInteractivity();
@@ -140,84 +120,83 @@ ID3D11Device* gDevice = nullptr;
 ID3D11DeviceContext* gContext = nullptr;
 ID3D11RenderTargetView* gRTV = nullptr;
 
-typedef HRESULT(__stdcall* Present_t)(IDXGISwapChain*, UINT, UINT);
-typedef HRESULT(__stdcall* ResizeBuffers_t)(IDXGISwapChain*, UINT, UINT, UINT, DXGI_FORMAT, UINT);
+typedef HRESULT(__stdcall* present_t)(IDXGISwapChain*, UINT, UINT);
+typedef HRESULT(__stdcall* resize_buffers_t)(IDXGISwapChain*, UINT, UINT, UINT, DXGI_FORMAT, UINT);
+typedef HRESULT(__stdcall* set_fullscreen_state_t)(IDXGISwapChain*, BOOL, IDXGIOutput*);
 
-Present_t oPresent = nullptr;
-ResizeBuffers_t oResizeBuffers = nullptr;
+typedef ULONG(__stdcall* release_t)(IDXGISwapChain*);
 
-static void* present_hook_ptr = nullptr;
-static void* resize_hook_ptr = nullptr;
-void initialize_swap_hooks()
+release_t original_release_fn = nullptr;
+present_t original_present_fn = nullptr;
+resize_buffers_t original_resize_buffers_fn = nullptr;
+set_fullscreen_state_t original_set_fullscreen_state_fn = nullptr;
+
+HRESULT __stdcall set_fullscreen_hook(IDXGISwapChain* swap_chain, BOOL is_fullscreen, IDXGIOutput* output)
 {
-    // Create dummy device and swap chain to get vtable
-    DXGI_SWAP_CHAIN_DESC sd = {};
-    sd.BufferCount = 1;
-    sd.BufferDesc.Width = 1;
-    sd.BufferDesc.Height = 1;
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    sd.OutputWindow = GetForegroundWindow();
-
-    sd.SampleDesc.Count = 1;
-    sd.Windowed = TRUE;
-
-    IDXGISwapChain* swapChain = nullptr;
-    ID3D11Device* device = nullptr;
-    ID3D11DeviceContext* context = nullptr;
-
-    if (SUCCEEDED(D3D11CreateDeviceAndSwapChain(
-        nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
-        nullptr, 0, D3D11_SDK_VERSION, &sd, &swapChain, &device, nullptr, &context)))
-    {
-        void** vtable = *reinterpret_cast<void***>(swapChain);
-        
-        present_hook_ptr = vtable[8]; 
-        resize_hook_ptr = vtable[13];
-        swapChain->Release();
-        device->Release();
-        context->Release();
-    }
+    is_safe = false;
+    KillTimer(game_hwnd, 69);
+    SetTimer(game_hwnd, 69, 1000, nullptr);
+    return original_set_fullscreen_state_fn(swap_chain, is_fullscreen, output);
 }
 
-HRESULT __stdcall present_hook(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
+HRESULT __stdcall present_hook(IDXGISwapChain* swap_chain, UINT sync_interval, UINT flags)
 {
-    if (game_device && view)
+    if (is_safe)
     {
-        if (view && init_renderer)
-        {
-            game_context->OMSetRenderTargets(1, &render_target_view, nullptr);
-            D3D11_VIEWPORT viewport = {0, 0, (float)(g_width), (float)(g_height), -1000, 1000.f};
-            game_context->RSSetViewports(1, &viewport);
-            
-            view->GetRenderer()->Render();
-        }
+        game_swap_chain = swap_chain;
+        is_safe = false;
     }
-
-    return oPresent(pSwapChain, SyncInterval, Flags);
-}
-
-HRESULT __stdcall resize_hook(IDXGISwapChain* pSwapChain, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat, UINT SwapChainFlags)
-{
-    if (render_target_view) { render_target_view->Release(); render_target_view = nullptr; }
-    if (game_back_buffer) { game_back_buffer->Release(); game_back_buffer = nullptr; }
     
-    HRESULT hr = oResizeBuffers(pSwapChain, BufferCount, Width, Height, NewFormat, SwapChainFlags);
+    if (render_target_view)
+    {
+        D3D11_TEXTURE2D_DESC desc;
+        game_back_buffer->GetDesc(&desc);
+        
+        const float game_aspect = (float)g_width / (float)g_height;
+        const float displayAspect = (float)desc.Width / (float)desc.Height;
+
+        D3D11_VIEWPORT viewport;
+        if (displayAspect > game_aspect) {
+            const float newWidth = desc.Height * game_aspect;
+            viewport.TopLeftX = (desc.Width - newWidth) / 2.0f;
+            viewport.TopLeftY = 0;
+            viewport.Width = newWidth;
+            viewport.Height = desc.Height;
+        } else {
+            const float newHeight = desc.Width / game_aspect;
+            viewport.TopLeftX = 0;
+            viewport.TopLeftY = (desc.Height - newHeight) / 2.0f;
+            viewport.Width = desc.Width;
+            viewport.Height = newHeight;
+        }
+        viewport.MinDepth = 0.0f; 
+        viewport.MaxDepth = 1.0f;
+        
+        ID3D11RenderTargetView* rtv = render_target_view.Get();
+        game_context->OMSetRenderTargets(1, &rtv, nullptr);
+        // D3D11_VIEWPORT viewport = {0, 0, (float)(g_width), (float)(g_height), -1000, 1000.f};
+        game_context->RSSetViewports(1, &viewport);
+    
+        // constexpr float color[4] = {0.0f, 0.0f, 1.0f, 1.0f};
+        // game_context->ClearRenderTargetView(render_target_view.Get(), color);
+        
+        view->GetRenderer()->Render();
+    }
+    
+    return original_present_fn(swap_chain, sync_interval, flags);
+}
+
+HRESULT __stdcall resize_hook(IDXGISwapChain* swap_chain, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat, UINT SwapChainFlags)
+{
+    game_swap_chain = swap_chain;
+    
+    render_target_view = nullptr;
+    game_back_buffer = nullptr;
+    
+    HRESULT hr = original_resize_buffers_fn(swap_chain, BufferCount, Width, Height, NewFormat, SwapChainFlags);
     
     if (SUCCEEDED(hr))
     {
-        if (!game_device)
-        {
-            pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&game_device);
-            game_device->GetImmediateContext(&game_context);
-            render_device = NoesisApp::D3D11Factory::CreateDevice(game_context, /* srgb */ false);
-        }
-
-        if (SUCCEEDED(pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&game_back_buffer)))
-        {
-            game_device->CreateRenderTargetView(game_back_buffer, nullptr, &render_target_view);
-        }
-
         if (view)
         {
             g_width = Width;
@@ -242,30 +221,37 @@ void hook_swap_chain()
     sd.SampleDesc.Count = 1;
     sd.Windowed = TRUE;
 
-    IDXGISwapChain* swapChain = nullptr;
+    IDXGISwapChain* swap_chain = nullptr;
     ID3D11Device* device = nullptr;
     ID3D11DeviceContext* context = nullptr;
 
     if (SUCCEEDED(D3D11CreateDeviceAndSwapChain(
         nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
-        nullptr, 0, D3D11_SDK_VERSION, &sd, &swapChain, &device, nullptr, &context)))
+        nullptr, 0, D3D11_SDK_VERSION, &sd, &swap_chain, &device, nullptr, &context)))
     {
-        void** vtable = *reinterpret_cast<void***>(swapChain);
-        DWORD oldProtect;
-
-        // present
-        VirtualProtect(&vtable[8], sizeof(void*), PAGE_EXECUTE_READWRITE, &oldProtect);
-        oPresent = reinterpret_cast<Present_t>(vtable[8]);
+        void** vtable = *reinterpret_cast<void***>(swap_chain);
+        DWORD old_protect;
+        
+        VirtualProtect(&vtable[8], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
+        original_present_fn = reinterpret_cast<present_t>(vtable[8]);
         vtable[8] = reinterpret_cast<void*>(&present_hook);
-        VirtualProtect(&vtable[8], sizeof(void*), oldProtect, &oldProtect);
+        VirtualProtect(&vtable[8], sizeof(void*), old_protect, &old_protect);
 
-        // resize
-        VirtualProtect(&vtable[13], sizeof(void*), PAGE_EXECUTE_READWRITE, &oldProtect);
-        oResizeBuffers = reinterpret_cast<ResizeBuffers_t>(vtable[13]);
+        VirtualProtect(&vtable[13], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
+        original_resize_buffers_fn = reinterpret_cast<resize_buffers_t>(vtable[13]);
         vtable[13] = reinterpret_cast<void*>(&resize_hook);
-        VirtualProtect(&vtable[13], sizeof(void*), oldProtect, &oldProtect);
+        VirtualProtect(&vtable[13], sizeof(void*), old_protect, &old_protect);
 
-        swapChain->Release();
+        // VirtualProtect(&vtable[2], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
+        // original_release_fn = reinterpret_cast<release_t>(vtable[2]);
+        // VirtualProtect(&vtable[2], sizeof(void*), old_protect, &old_protect);
+
+        VirtualProtect(&vtable[10], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
+        original_set_fullscreen_state_fn = reinterpret_cast<set_fullscreen_state_t>(vtable[10]);
+        vtable[10] = reinterpret_cast<void*>(&set_fullscreen_hook);
+        VirtualProtect(&vtable[10], sizeof(void*), old_protect, &old_protect);
+        
+        swap_chain->Release();
         device->Release();
         context->Release();
     }
@@ -311,12 +297,9 @@ double gm_function_initialize(char* ptr, const double fps, char *event_read_buff
     Noesis::GUI::LoadApplicationResources(NoesisApp::Theme::DarkBlue());
     
     start_ticks = Noesis::HighResTimer::Ticks();
-
-    hHook = SetWindowsHookEx(WH_GETMESSAGE, hook_proc, nullptr, GetWindowThreadProcessId(game_hwnd, nullptr));
     
+    original_win_proc = (WNDPROC)SetWindowLongPtr(game_hwnd, GWLP_WNDPROC, (LONG_PTR)hook_proc);
     hook_swap_chain();
-
-    SetTimer(game_hwnd, 1, 1, nullptr);
     
     return 1;
 }
@@ -711,7 +694,7 @@ double gm_function_vm_process_read_buffer()
 
                         auto ref_vm = g_vm_instances.find(static_cast<int>(ref_id))->second;
                         vm->SetValueNoEvent(param_name, Noesis::Ptr<DynamicObject>(ref_vm));
-                        break;
+                        break; 
                     }
                 }
             }
@@ -726,4 +709,58 @@ double gm_function_load_application_resources(char* path)
 {
     Noesis::GUI::LoadApplicationResources(path);
     return 1;
+}
+
+extern "C" __declspec(dllexport)
+void gm_function_update_view(const double current_time_seconds)
+{
+
+    if (game_swap_chain)
+    {
+        if (!render_device)
+        {
+            if (SUCCEEDED(game_swap_chain->GetDevice(__uuidof(ID3D11Device), &game_device)))
+            {
+                game_device->GetImmediateContext(&game_context);
+                render_device = NoesisApp::D3D11Factory::CreateDevice(game_context.Get(), /* srgb */ false);
+            }
+        }
+        
+        if (!game_back_buffer || !render_target_view) 
+        {
+            if (SUCCEEDED(game_swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), &game_back_buffer)))
+            {
+                game_device->CreateRenderTargetView(game_back_buffer.Get(), nullptr, &render_target_view);
+            }
+        }
+    }
+    
+    if (view)
+    {
+        if (init_renderer)
+        {
+            view->Update(current_time_seconds);
+            view->GetRenderer()->UpdateRenderTree();
+            view->GetRenderer()->RenderOffscreen();
+        }
+        else if (render_device)
+        {
+            init_renderer = true; 
+            view->GetRenderer()->Init(render_device);
+            std::cout << "binding render device" << std::endl; 
+        }
+    }
+}
+
+extern "C" __declspec(dllexport)
+void gm_function_prep_for_fullscreen_change() 
+{
+    is_safe = false;
+    KillTimer(game_hwnd, 69);
+    SetTimer(game_hwnd, 69, 1000, nullptr);
+
+    game_swap_chain = nullptr;
+
+    render_target_view = nullptr;
+    game_back_buffer = nullptr;
 }

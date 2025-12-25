@@ -37,6 +37,8 @@
         {"$GMExtensionFunction":"","%Name":"noesis_load_application_resources","argCount":0,"args":[1,],"documentation":"","externalName":"gm_function_load_application_resources","help":"","hidden":true,"kind":1,"name":"noesis_load_application_resources","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
         {"$GMExtensionFunction":"","%Name":"noesis_vm_type_add_event","argCount":0,"args":[1,],"documentation":"","externalName":"gm_function_create_vm_type_add_event","help":"","hidden":true,"kind":1,"name":"noesis_vm_type_add_event","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
         {"$GMExtensionFunction":"","%Name":"noesis_draw","argCount":0,"args":[],"documentation":"","externalName":"gm_function_draw","help":"","hidden":true,"kind":1,"name":"noesis_draw","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
+        {"$GMExtensionFunction":"","%Name":"noesis_update_view","argCount":0,"args":[2,],"documentation":"","externalName":"gm_function_update_view","help":"","hidden":false,"kind":1,"name":"noesis_update_view","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
+        {"$GMExtensionFunction":"","%Name":"noesis_prep_for_fullscreen_change","argCount":0,"args":[],"documentation":"","externalName":"gm_function_prep_for_fullscreen_change","help":"","hidden":false,"kind":1,"name":"noesis_prep_for_fullscreen_change","resourceType":"GMExtensionFunction","resourceVersion":"2.0","returnType":2,},
       ],"init":"","kind":1,"name":"","origname":"","ProxyFiles":[],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
     {"$GMExtensionFile":"v1","%Name":"","constants":[],"copyToTargets":-1,"filename":"NoesisApp.dll","final":"","functions":[],"init":"","kind":1,"name":"","origname":"","ProxyFiles":[],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
     {"$GMExtensionFile":"v1","%Name":"","constants":[],"copyToTargets":-1,"filename":"Noesis.dll","final":"","functions":[],"init":"","kind":1,"name":"","origname":"","ProxyFiles":[],"resourceType":"GMExtensionFile","resourceVersion":"2.0","uncompress":false,"usesRunnerInterface":false,},
@@ -69,7 +71,7 @@
   "packageId":"",
   "parent":{
     "name":"GMNoesis",
-    "path":"folders/GMNoesis.yy",
+    "path":"folders/Extensions/GMNoesis.yy",
   },
   "productId":"",
   "resourceType":"GMExtension",

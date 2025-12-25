@@ -10,7 +10,8 @@
   },
   "defaultScriptType":1,
   "Folders":[
-    {"$GMFolder":"","%Name":"GMNoesis","folderPath":"folders/GMNoesis.yy","name":"GMNoesis","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Extensions","folderPath":"folders/Extensions.yy","name":"Extensions","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"GMNoesis","folderPath":"folders/Extensions/GMNoesis.yy","name":"GMNoesis","resourceType":"GMFolder","resourceVersion":"2.0",},
   ],
   "ForcedPrefabProjectReferences":[],
   "IncludedFiles":[
@@ -173,7 +174,9 @@
     {"id":{"name":"obj_gmnoesis_runner","path":"objects/obj_gmnoesis_runner/obj_gmnoesis_runner.yy",},},
     {"id":{"name":"obj_test_vm","path":"objects/obj_test_vm/obj_test_vm.yy",},},
     {"id":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
+    {"id":{"name":"GMNoesisDelegate","path":"scripts/GMNoesisDelegate/GMNoesisDelegate.yy",},},
     {"id":{"name":"GMNoesisGML","path":"scripts/GMNoesisGML/GMNoesisGML.yy",},},
+    {"id":{"name":"GMNoesisVM","path":"scripts/GMNoesisVM/GMNoesisVM.yy",},},
     {"id":{"name":"TestVM","path":"scripts/TestVM/TestVM.yy",},},
   ],
   "resourceType":"GMProject",

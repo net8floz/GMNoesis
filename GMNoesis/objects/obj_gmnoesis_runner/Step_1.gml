@@ -19,11 +19,12 @@ if (noesis_vm_prepare_write_buffer_for_reading()) {
 	
 		var _property_value = 0;
 		
-		var _collection = _is_event
+		var _definitions = _is_event
 			? _vm.definition.commands
 			: _vm.definition;
 		
-		var _property_type = _collection[$ _property_name];
+		// todo: handle collections
+		var _property_type = _definitions[$ _property_name];
 		
 		switch (_property_type) {
 			case GMNoesisVMType.string:
@@ -38,12 +39,11 @@ if (noesis_vm_prepare_write_buffer_for_reading()) {
 		}
 		
 		if (_is_event) {
-			_vm[$ $"handle_{_property_name}"](_property_value);
+			var _delegate = _vm[$ _property_name];
+			_delegate.invoke(_property_value);
 		} else {
 			_vm[$ _property_name] = _property_value;
 		}
-		
-	
 	}
 }
 

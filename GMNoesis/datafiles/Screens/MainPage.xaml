@@ -17,42 +17,7 @@
     </noesis:DataEventTrigger>
   </b:Interaction.Triggers>
   <Page.Resources >
-    <Storyboard x:Key="Storyboard0">
-      <DoubleAnimationUsingKeyFrames Storyboard.TargetName="TextBox0" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)">
-        <LinearDoubleKeyFrame KeyTime="00:00:00" Value="2.1063116"/>
-        <LinearDoubleKeyFrame KeyTime="00:00:03.8000000" Value="0.5789288"/>
-      </DoubleAnimationUsingKeyFrames>
-      <DoubleAnimationUsingKeyFrames Storyboard.TargetName="TextBox0" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)">
-        <LinearDoubleKeyFrame KeyTime="00:00:00" Value="3.452373"/>
-        <LinearDoubleKeyFrame KeyTime="00:00:03.8000000" Value="2.9090028"/>
-      </DoubleAnimationUsingKeyFrames>
-    </Storyboard>
+    <Storyboard x:Key="Storyboard0"/>
   </Page.Resources>
-  <Viewbox Stretch="Fill">
-    <Border Width="640" Height="360">
-      <Canvas>
-        <Canvas Canvas.Left="35" Canvas.Top="110.754005" Width="568" Height="228.99998">
-          <noesis:NineSliceImage
-            Canvas.Left="0"
-            Canvas.Top="-51.000008"
-            Width="568"
-            Height="280"
-            Padding="200,200,200,200"
-            ImageSource="images/tile_0000.png"
-            Slices="5,5,5,5"/>
-          <TextBox x:Name="TextBox0" TextWrapping="Wrap" Width="120" Canvas.Top="65.77064" Canvas.Left="211.43344" CaretIndex="0" SelectionLength="0" SelectionStart="0" RenderTransformOrigin="0.5,0.5" Text="{Binding Path=name}">
-            <TextBox.RenderTransform>
-              <TransformGroup>
-                <ScaleTransform/>
-                <SkewTransform/>
-                <RotateTransform/>
-                <TranslateTransform/>
-              </TransformGroup>
-            </TextBox.RenderTransform>
-          </TextBox>
-        </Canvas>
-        <noesis:LayoutScaler Width="80"/>
-      </Canvas>
-    </Border>
-  </Viewbox>
+  <TextBlock TextWrapping="Wrap" Text="HELLO WORLD" Foreground="#FF0884FF"/>
 </Page>

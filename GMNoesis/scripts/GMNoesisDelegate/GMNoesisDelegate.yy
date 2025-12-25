@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"GMNoesisDelegate",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"GMNoesisDelegate",
+  "parent":{
+    "name":"GMNoesis",
+    "path":"folders/Extensions/GMNoesis.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

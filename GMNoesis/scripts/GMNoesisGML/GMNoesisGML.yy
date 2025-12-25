@@ -6,7 +6,7 @@
   "name":"GMNoesisGML",
   "parent":{
     "name":"GMNoesis",
-    "path":"folders/GMNoesis.yy",
+    "path":"folders/Extensions/GMNoesis.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

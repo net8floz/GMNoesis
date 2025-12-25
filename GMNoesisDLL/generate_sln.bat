@@ -25,7 +25,5 @@ cd "%BUILD_DIR%"
 
 "%CMAKE_CMD%" .. -G "Visual Studio 17 2022" -A x64
 
-"%CMAKE_CMD%" --build . --config Debug
-
 pause
 endlocal

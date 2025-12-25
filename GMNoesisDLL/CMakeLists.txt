@@ -57,9 +57,9 @@ add_custom_command(TARGET GMNoesis POST_BUILD
         $<TARGET_FILE:GMNoesis>
         "${EXTENSIONS_DIR}/GMNoesis.dll"
 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_PDB_FILE:GMNoesis>
-        "${EXTENSIONS_DIR}/GMNoesis.pdb"
+    # COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    #     $<TARGET_PDB_FILE:GMNoesis>
+    #     "${EXTENSIONS_DIR}/GMNoesis.pdb"
 
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/bin/windows_x86_64/Noesis.dll
@@ -67,11 +67,9 @@ add_custom_command(TARGET GMNoesis POST_BUILD
 
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/bin/windows_x86_64/NoesisApp.dll
-        ${EXTENSIONS_DIR}/NoesisApp.dll
+        ${EXTENSIONS_DIR}/NoesisApp.dll) 
+        
 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_SOURCE_DIR}/ThirdParty/Noesis/bin/windows_x86_64/NoesisApp.pdb
-        ${EXTENSIONS_DIR}/NoesisApp.pdb)
 
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT GMNoesis)
