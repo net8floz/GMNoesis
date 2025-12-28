@@ -14,6 +14,8 @@ function GMNoesis() {
 	static defined_types = {};
 	static vm_collection = {};
 	
+	static use_delta_time = false;
+	
 	static nassert = function(_cnd) {
 		if (!_cnd) {
 			throw "assert failed";	
@@ -112,6 +114,43 @@ function GMNoesis() {
 		noesis_vm_type_end();
 	
 		GMNoesis.defined_types[$ _type_name] = _definition;
+	}
+	
+	var _res_buffer = buffer_create(1024 * 1024, buffer_fixed, 1);
+	noesis_get_supported_resolutions(buffer_get_address(_res_buffer));
+	
+
+	static supported_resolutions = [];
+	var _total_resolutions = noesis_get_supported_resolutions(buffer_get_address(_res_buffer));
+
+	repeat (_total_resolutions) {
+	    var _str = buffer_read(_res_buffer, buffer_string);
+	    var parts = string_split(_str, "@");
+	    var res_part = parts[0];
+	    var fps_part = parts[1];
+
+	    parts = string_split(res_part, "x");
+	    var width = real(parts[0]);
+	    var height = real(parts[1]);
+	    var refresh = real(string_replace(fps_part, "Hz", ""));
+
+	    var _found = false;
+	    for (var i = 0; i < array_length(supported_resolutions); i++) {
+	        if (supported_resolutions[i].width == width && supported_resolutions[i].height == height) {
+	            array_push(supported_resolutions[i].refresh_rates, refresh);
+	            _found = true;
+	            break;
+	        }
+	    }
+
+	    if (!_found) {
+	        var resolution_info = {
+	            width: width,
+	            height: height,
+	            refresh_rates: [refresh]
+	        };
+	        array_push(supported_resolutions, resolution_info);
+	    }
 	}
 	
 	noisis_loicense(

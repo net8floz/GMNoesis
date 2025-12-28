@@ -8,4 +8,9 @@ if (buffer_tell(_buffer) > 0) {
 }
 
 noesis_update_view(timer);
-timer += (1/60);
+
+if (GMNoesis.use_delta_time) {
+	timer += delta_time / 1000000;
+} else {
+	timer += (1/game_get_speed(gamespeed_fps));
+}

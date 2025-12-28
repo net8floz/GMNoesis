@@ -1,5 +1,6 @@
 #include <windowsx.h>
 #include <d3d11.h>
+#include <dxgi1_2.h>
 #include <dxgi.h>
 #include <ostream>
 #include <thread>
@@ -27,14 +28,17 @@
 #include "VMWriteMessage.h"
 #include "Windows/WindowsKeys.h"
 #include <random>
+#include <sstream>
+#include <unordered_set>
 #include <wrl/client.h>
 
-static Microsoft::WRL::ComPtr<ID3D11Device> game_device = nullptr;
-static Microsoft::WRL::ComPtr<ID3D11DeviceContext> game_context = nullptr;
+#include "LayoutScaler.h"
+#include "ThicknessConverter.h"
 
-static Microsoft::WRL::ComPtr<ID3D11Texture2D> game_back_buffer = nullptr;
+
+static Microsoft::WRL::ComPtr<ID3D11DeviceContext> game_context = nullptr;
 static Microsoft::WRL::ComPtr<ID3D11RenderTargetView> render_target_view = nullptr;
-static Microsoft::WRL::ComPtr<IDXGISwapChain> game_swap_chain = nullptr;
+
 static Noesis::Ptr<Noesis::IView> view = nullptr;
 static Noesis::Ptr<Noesis::RenderDevice> render_device = nullptr;
 
@@ -43,13 +47,32 @@ static uint64_t start_ticks = 0;
 static int g_width = 0;
 static int g_height = 0;
 static HWND game_hwnd = nullptr;
-
-static bool init_renderer = false;
-
 static bool is_safe = false;
+
+void free_render_resources()
+{
+    render_target_view = nullptr;
+    is_safe = false;
+}
+
+void recreate_render_resources()
+{
+    render_target_view = nullptr;
+    is_safe = false;
+    KillTimer(game_hwnd, 69);
+    SetTimer(game_hwnd, 69, 100, nullptr);
+}
 
 LRESULT hook_proc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
 {
+    if (msg == WM_SYSKEYDOWN || msg == WM_KEYDOWN)
+    {
+        if (w_param == VK_RETURN && (GetKeyState(VK_MENU) & 0x8000))
+        {
+            recreate_render_resources();
+        }
+    }
+    
     if (view)
     {
         switch (msg)
@@ -123,89 +146,170 @@ ID3D11RenderTargetView* gRTV = nullptr;
 typedef HRESULT(__stdcall* present_t)(IDXGISwapChain*, UINT, UINT);
 typedef HRESULT(__stdcall* resize_buffers_t)(IDXGISwapChain*, UINT, UINT, UINT, DXGI_FORMAT, UINT);
 typedef HRESULT(__stdcall* set_fullscreen_state_t)(IDXGISwapChain*, BOOL, IDXGIOutput*);
-
+typedef HRESULT(__stdcall* create_swap_chain__t)(IUnknown *device, DXGI_SWAP_CHAIN_DESC *desc, IDXGISwapChain **swap_chain);
 typedef ULONG(__stdcall* release_t)(IDXGISwapChain*);
+typedef HRESULT(__stdcall* create_swap_chain_for_hwnd_t)(
+    IDXGIFactory2* factory,
+    IUnknown* device,
+    HWND hwnd,
+    const DXGI_SWAP_CHAIN_DESC1* desc,
+    const DXGI_SWAP_CHAIN_FULLSCREEN_DESC* fullscreenDesc,
+    IDXGIOutput* restrictOutput,
+    IDXGISwapChain1** swapChain
+);
+
 
 release_t original_release_fn = nullptr;
 present_t original_present_fn = nullptr;
 resize_buffers_t original_resize_buffers_fn = nullptr;
 set_fullscreen_state_t original_set_fullscreen_state_fn = nullptr;
+create_swap_chain__t original_create_swap_chain_fn = nullptr;
+create_swap_chain_for_hwnd_t original_create_swap_chain_for_hwnd = nullptr;
+
+void try_create_render_resources(IDXGISwapChain& swap_chain)
+{
+    Microsoft::WRL::ComPtr<ID3D11Device> game_device = nullptr;
+    if (!render_device || !render_target_view)
+    {
+        if (!SUCCEEDED(swap_chain.GetDevice(__uuidof(ID3D11Device), &game_device)))
+        {
+            return;
+        }
+    }
+    
+    if (!render_device)
+    {
+        game_device->GetImmediateContext(&game_context);
+        render_device = NoesisApp::D3D11Factory::CreateDevice(game_context.Get(), /* srgb */ false);
+        view->GetRenderer()->Init(render_device);
+    }
+        
+    if (!render_target_view)
+    {
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> buffer = nullptr;
+        if (SUCCEEDED(swap_chain.GetBuffer(0, __uuidof(ID3D11Texture2D), &buffer)))
+        {
+            game_device->CreateRenderTargetView(buffer.Get(), nullptr, &render_target_view);
+        }
+    }
+}
+
+HRESULT __stdcall create_swapchain_for_hwnd_hook(
+    IDXGIFactory2* factory,
+    IUnknown* device,
+    HWND hwnd,
+    const DXGI_SWAP_CHAIN_DESC1* desc,
+    const DXGI_SWAP_CHAIN_FULLSCREEN_DESC* fullscreen_desc,
+    IDXGIOutput* output,
+    IDXGISwapChain1** swap_chain)
+{
+    free_render_resources();
+    const HRESULT result = original_create_swap_chain_for_hwnd(factory, device, hwnd, desc, fullscreen_desc, output, swap_chain);
+    if (SUCCEEDED(result))
+    {
+        recreate_render_resources();
+    }
+    return result;
+}
+
+
+HRESULT __stdcall create_swapchain_hook(IUnknown* device, DXGI_SWAP_CHAIN_DESC* desc, IDXGISwapChain** swap_chain)
+{
+    free_render_resources();
+    const HRESULT result = original_create_swap_chain_fn(device, desc, swap_chain);
+    if (SUCCEEDED(result))
+    {
+        recreate_render_resources();
+    }
+    return result;
+}
 
 HRESULT __stdcall set_fullscreen_hook(IDXGISwapChain* swap_chain, BOOL is_fullscreen, IDXGIOutput* output)
 {
-    is_safe = false;
-    KillTimer(game_hwnd, 69);
-    SetTimer(game_hwnd, 69, 1000, nullptr);
-    return original_set_fullscreen_state_fn(swap_chain, is_fullscreen, output);
+    free_render_resources();
+    const HRESULT result = original_set_fullscreen_state_fn(swap_chain, is_fullscreen, output);
+    if (SUCCEEDED(result))
+    {
+        recreate_render_resources();
+    }
+    return result;
 }
 
 HRESULT __stdcall present_hook(IDXGISwapChain* swap_chain, UINT sync_interval, UINT flags)
 {
     if (is_safe)
     {
-        game_swap_chain = swap_chain;
-        is_safe = false;
+       try_create_render_resources(*swap_chain);
+    } else
+    {
+        return 1;
     }
     
-    if (render_target_view)
+    if (view && render_target_view)
     {
         D3D11_TEXTURE2D_DESC desc;
-        game_back_buffer->GetDesc(&desc);
         
-        const float game_aspect = (float)g_width / (float)g_height;
-        const float displayAspect = (float)desc.Width / (float)desc.Height;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> buffer = nullptr;
+        if (SUCCEEDED(swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), &buffer)))
+        {
+            buffer->GetDesc(&desc);
+            
+            const float game_aspect = (float)g_width / (float)g_height;
+            const float displayAspect = (float)desc.Width / (float)desc.Height;
 
-        D3D11_VIEWPORT viewport;
-        if (displayAspect > game_aspect) {
-            const float newWidth = desc.Height * game_aspect;
-            viewport.TopLeftX = (desc.Width - newWidth) / 2.0f;
-            viewport.TopLeftY = 0;
-            viewport.Width = newWidth;
-            viewport.Height = desc.Height;
-        } else {
-            const float newHeight = desc.Width / game_aspect;
-            viewport.TopLeftX = 0;
-            viewport.TopLeftY = (desc.Height - newHeight) / 2.0f;
-            viewport.Width = desc.Width;
-            viewport.Height = newHeight;
-        }
-        viewport.MinDepth = 0.0f; 
-        viewport.MaxDepth = 1.0f;
+            D3D11_VIEWPORT viewport;
+            if (displayAspect > game_aspect) {
+                const float newWidth = desc.Height * game_aspect;
+                viewport.TopLeftX = (desc.Width - newWidth) / 2.0f;
+                viewport.TopLeftY = 0;
+                viewport.Width = newWidth;
+                viewport.Height = desc.Height;
+            } else {
+                const float newHeight = desc.Width / game_aspect;
+                viewport.TopLeftX = 0;
+                viewport.TopLeftY = (desc.Height - newHeight) / 2.0f;
+                viewport.Width = desc.Width;
+                viewport.Height = newHeight;
+            }
+            viewport.MinDepth = 0.0f;
+            viewport.MaxDepth = 1.0f;
         
-        ID3D11RenderTargetView* rtv = render_target_view.Get();
-        game_context->OMSetRenderTargets(1, &rtv, nullptr);
-        // D3D11_VIEWPORT viewport = {0, 0, (float)(g_width), (float)(g_height), -1000, 1000.f};
-        game_context->RSSetViewports(1, &viewport);
+            ID3D11RenderTargetView* rtv = render_target_view.Get();
+            game_context->OMSetRenderTargets(1, &rtv, nullptr);
+            // D3D11_VIEWPORT viewport = {0, 0, (float)(g_width), (float)(g_height), -1000, 1000.f};
+            game_context->RSSetViewports(1, &viewport);
     
-        // constexpr float color[4] = {0.0f, 0.0f, 1.0f, 1.0f};
-        // game_context->ClearRenderTargetView(render_target_view.Get(), color);
+            // constexpr float color[4] = {0.0f, 0.0f, 1.0f, 1.0f};
+            // game_context->ClearRenderTargetView(render_target_view.Get(), color);
         
-        view->GetRenderer()->Render();
+            view->GetRenderer()->Render();
+            
+            g_width = desc.Width;
+            g_height = desc.Height;
+            view->SetSize(g_width, g_height);
+        }
     }
     
     return original_present_fn(swap_chain, sync_interval, flags);
 }
 
-HRESULT __stdcall resize_hook(IDXGISwapChain* swap_chain, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat, UINT SwapChainFlags)
+HRESULT __stdcall resize_hook(IDXGISwapChain* swap_chain, UINT buffer_count, UINT width, UINT height, DXGI_FORMAT format, UINT flags)
 {
-    game_swap_chain = swap_chain;
-    
-    render_target_view = nullptr;
-    game_back_buffer = nullptr;
-    
-    HRESULT hr = original_resize_buffers_fn(swap_chain, BufferCount, Width, Height, NewFormat, SwapChainFlags);
-    
-    if (SUCCEEDED(hr))
+    free_render_resources();
+    const HRESULT result = original_resize_buffers_fn(swap_chain, buffer_count, width, height, format, flags);
+    if (SUCCEEDED(result))
     {
+        recreate_render_resources();
+    
         if (view)
         {
-            g_width = Width;
-            g_height = Height;
-            view->SetSize(Width, Height);
+            g_width = static_cast<int>(width);
+            g_height = static_cast<int>(height);
+            view->SetSize(width, height);
         }
     }
 
-    return hr;
+    return result;
 }
 
 void hook_swap_chain()
@@ -224,7 +328,8 @@ void hook_swap_chain()
     IDXGISwapChain* swap_chain = nullptr;
     ID3D11Device* device = nullptr;
     ID3D11DeviceContext* context = nullptr;
-
+    
+    
     if (SUCCEEDED(D3D11CreateDeviceAndSwapChain(
         nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
         nullptr, 0, D3D11_SDK_VERSION, &sd, &swap_chain, &device, nullptr, &context)))
@@ -236,16 +341,12 @@ void hook_swap_chain()
         original_present_fn = reinterpret_cast<present_t>(vtable[8]);
         vtable[8] = reinterpret_cast<void*>(&present_hook);
         VirtualProtect(&vtable[8], sizeof(void*), old_protect, &old_protect);
-
+        
         VirtualProtect(&vtable[13], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
         original_resize_buffers_fn = reinterpret_cast<resize_buffers_t>(vtable[13]);
         vtable[13] = reinterpret_cast<void*>(&resize_hook);
         VirtualProtect(&vtable[13], sizeof(void*), old_protect, &old_protect);
-
-        // VirtualProtect(&vtable[2], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
-        // original_release_fn = reinterpret_cast<release_t>(vtable[2]);
-        // VirtualProtect(&vtable[2], sizeof(void*), old_protect, &old_protect);
-
+        
         VirtualProtect(&vtable[10], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
         original_set_fullscreen_state_fn = reinterpret_cast<set_fullscreen_state_t>(vtable[10]);
         vtable[10] = reinterpret_cast<void*>(&set_fullscreen_hook);
@@ -254,6 +355,32 @@ void hook_swap_chain()
         swap_chain->Release();
         device->Release();
         context->Release();
+    }
+
+    {
+        Microsoft::WRL::ComPtr<IDXGIFactory1> factory1;
+        HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&factory1));
+        if (SUCCEEDED(hr))
+        {
+            Microsoft::WRL::ComPtr<IDXGIFactory2> factory2; 
+            hr = factory1.As(&factory2);
+            if (SUCCEEDED(hr))
+            {
+                void** vtable = *reinterpret_cast<void***>(factory1.Get());
+                DWORD old_protect;
+
+                VirtualProtect(&vtable[10], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
+                original_create_swap_chain_fn = reinterpret_cast<create_swap_chain__t>(vtable[10]);
+                vtable[10] = reinterpret_cast<void*>(&create_swapchain_hook);
+                VirtualProtect(&vtable[10], sizeof(void*), old_protect, &old_protect);
+
+                vtable = *reinterpret_cast<void***>(factory2.Get());
+                VirtualProtect(&vtable[15], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
+                original_create_swap_chain_for_hwnd = reinterpret_cast<create_swap_chain_for_hwnd_t>(vtable[15]);
+                vtable[15] = reinterpret_cast<void*>(&create_swapchain_for_hwnd_hook);
+                VirtualProtect(&vtable[15], sizeof(void*), old_protect, &old_protect);
+            }
+        }
     }
 }
 
@@ -286,6 +413,7 @@ double gm_function_initialize(char* ptr, const double fps, char *event_read_buff
     NsInitPackageAppInteractivity();
 
     NS_REGISTER_COMPONENT(NineSlice::NineSliceImage)
+    NS_REGISTER_COMPONENT(NoesisApp::LayoutScaler)
     
     Noesis::GUI::SetXamlProvider(Noesis::MakePtr<NoesisApp::LocalXamlProvider>("./Screens"));
     Noesis::GUI::SetFontProvider(Noesis::MakePtr<NoesisApp::LocalFontProvider>("./Screens"));
@@ -714,53 +842,38 @@ double gm_function_load_application_resources(char* path)
 extern "C" __declspec(dllexport)
 void gm_function_update_view(const double current_time_seconds)
 {
-
-    if (game_swap_chain)
+    if (render_device)
     {
-        if (!render_device)
-        {
-            if (SUCCEEDED(game_swap_chain->GetDevice(__uuidof(ID3D11Device), &game_device)))
-            {
-                game_device->GetImmediateContext(&game_context);
-                render_device = NoesisApp::D3D11Factory::CreateDevice(game_context.Get(), /* srgb */ false);
-            }
-        }
-        
-        if (!game_back_buffer || !render_target_view) 
-        {
-            if (SUCCEEDED(game_swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), &game_back_buffer)))
-            {
-                game_device->CreateRenderTargetView(game_back_buffer.Get(), nullptr, &render_target_view);
-            }
-        }
-    }
-    
-    if (view)
-    {
-        if (init_renderer)
-        {
-            view->Update(current_time_seconds);
-            view->GetRenderer()->UpdateRenderTree();
-            view->GetRenderer()->RenderOffscreen();
-        }
-        else if (render_device)
-        {
-            init_renderer = true; 
-            view->GetRenderer()->Init(render_device);
-            std::cout << "binding render device" << std::endl; 
-        }
+        view->Update(current_time_seconds);
+        view->GetRenderer()->UpdateRenderTree();
+        view->GetRenderer()->RenderOffscreen();
     }
 }
 
 extern "C" __declspec(dllexport)
-void gm_function_prep_for_fullscreen_change() 
+double gm_function_get_supported_resolutions(char* buffer_start)
 {
-    is_safe = false;
-    KillTimer(game_hwnd, 69);
-    SetTimer(game_hwnd, 69, 1000, nullptr);
+    char* buffer_current = buffer_start;
+    
+    DEVMODE devMode;
+    int modeIndex = 0;
+    
+    std::unordered_set<std::string> seen; 
+    int count = 0;
+    while (EnumDisplaySettings(NULL, modeIndex++, &devMode)) {
+        std::ostringstream res;
+        res << devMode.dmPelsWidth << "x" << devMode.dmPelsHeight
+            << "@" << devMode.dmDisplayFrequency << "Hz";
+    
+        std::string str = res.str();
+    
+        if (seen.insert(str).second) {
+            // std::cout << str << std::endl;
+            memcpy(buffer_current, str.c_str(), str.size() + 1);
+            buffer_current += str.size() + 1;
+            count++;
+        }
+    }
 
-    game_swap_chain = nullptr;
-
-    render_target_view = nullptr;
-    game_back_buffer = nullptr;
+    return count;
 }
