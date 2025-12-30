@@ -51,12 +51,14 @@ static bool is_safe = false;
 
 void free_render_resources()
 {
+    // std::cout << "freeing render resources" << std::endl;
     render_target_view = nullptr;
     is_safe = false;
 }
 
 void recreate_render_resources()
 {
+    // std::cout << "setting render resource schedule timer" << std::endl;
     render_target_view = nullptr;
     is_safe = false;
     KillTimer(game_hwnd, 69);
@@ -69,6 +71,7 @@ LRESULT hook_proc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
     {
         if (w_param == VK_RETURN && (GetKeyState(VK_MENU) & 0x8000))
         {
+            // std::cout << "alt enter detected" << std::endl;
             recreate_render_resources();
         }
     }
@@ -179,6 +182,7 @@ void try_create_render_resources(IDXGISwapChain& swap_chain)
     
     if (!render_device)
     {
+        std::cout << "creating render device" << std::endl;
         game_device->GetImmediateContext(&game_context);
         render_device = NoesisApp::D3D11Factory::CreateDevice(game_context.Get(), /* srgb */ false);
         view->GetRenderer()->Init(render_device);
@@ -186,6 +190,7 @@ void try_create_render_resources(IDXGISwapChain& swap_chain)
         
     if (!render_target_view)
     {
+        std::cout << "creating render target" << std::endl;
         Microsoft::WRL::ComPtr<ID3D11Texture2D> buffer = nullptr;
         if (SUCCEEDED(swap_chain.GetBuffer(0, __uuidof(ID3D11Texture2D), &buffer)))
         {
@@ -203,6 +208,7 @@ HRESULT __stdcall create_swapchain_for_hwnd_hook(
     IDXGIOutput* output,
     IDXGISwapChain1** swap_chain)
 {
+    std::cout << "create_swapchain_for_hwnd_hook" << std::endl;
     free_render_resources();
     const HRESULT result = original_create_swap_chain_for_hwnd(factory, device, hwnd, desc, fullscreen_desc, output, swap_chain);
     if (SUCCEEDED(result))
@@ -213,19 +219,37 @@ HRESULT __stdcall create_swapchain_for_hwnd_hook(
 }
 
 
-HRESULT __stdcall create_swapchain_hook(IUnknown* device, DXGI_SWAP_CHAIN_DESC* desc, IDXGISwapChain** swap_chain)
+ULONG __stdcall release_hook(IDXGISwapChain* swap_chain)
 {
-    free_render_resources();
-    const HRESULT result = original_create_swap_chain_fn(device, desc, swap_chain);
-    if (SUCCEEDED(result))
+    ULONG remaining = original_release_fn(swap_chain);
+    // std::cout << "Remaining" << remaining << std::endl;
+    if (remaining == 0)
     {
         recreate_render_resources();
     }
-    return result;
+    
+    return remaining;
 }
+
+
+// HRESULT __stdcall create_swapchain_hook(IUnknown* device, DXGI_SWAP_CHAIN_DESC* desc, IDXGISwapChain** swap_chain)
+// {
+//     // std::cout << "create_swapchain_hook" << std::endl;
+//     // free_render_resources();
+//     render_target_view = nullptr;
+//     is_safe = false;
+//     
+//     const HRESULT result = original_create_swap_chain_fn(device, desc, swap_chain);
+//     if (SUCCEEDED(result))
+//     {
+//         recreate_render_resources();
+//     }
+//     return result;
+// }
 
 HRESULT __stdcall set_fullscreen_hook(IDXGISwapChain* swap_chain, BOOL is_fullscreen, IDXGIOutput* output)
 {
+    // std::cout << "set_fullscreen_hook" << std::endl;
     free_render_resources();
     const HRESULT result = original_set_fullscreen_state_fn(swap_chain, is_fullscreen, output);
     if (SUCCEEDED(result))
@@ -237,6 +261,7 @@ HRESULT __stdcall set_fullscreen_hook(IDXGISwapChain* swap_chain, BOOL is_fullsc
 
 HRESULT __stdcall present_hook(IDXGISwapChain* swap_chain, UINT sync_interval, UINT flags)
 {
+    // std::cout << "present_hook" << std::endl;
     if (is_safe)
     {
        try_create_render_resources(*swap_chain);
@@ -295,6 +320,7 @@ HRESULT __stdcall present_hook(IDXGISwapChain* swap_chain, UINT sync_interval, U
 
 HRESULT __stdcall resize_hook(IDXGISwapChain* swap_chain, UINT buffer_count, UINT width, UINT height, DXGI_FORMAT format, UINT flags)
 {
+    // std::cout << "resize-hook" << std::endl;
     free_render_resources();
     const HRESULT result = original_resize_buffers_fn(swap_chain, buffer_count, width, height, format, flags);
     if (SUCCEEDED(result))
@@ -336,6 +362,11 @@ void hook_swap_chain()
     {
         void** vtable = *reinterpret_cast<void***>(swap_chain);
         DWORD old_protect;
+
+        VirtualProtect(&vtable[2], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
+        original_release_fn = reinterpret_cast<release_t>(vtable[2]);
+        vtable[2] = reinterpret_cast<void*>(&release_hook);
+        VirtualProtect(&vtable[2], sizeof(void*), old_protect, &old_protect);
         
         VirtualProtect(&vtable[8], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
         original_present_fn = reinterpret_cast<present_t>(vtable[8]);
@@ -368,11 +399,11 @@ void hook_swap_chain()
             {
                 void** vtable = *reinterpret_cast<void***>(factory1.Get());
                 DWORD old_protect;
-
-                VirtualProtect(&vtable[10], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
-                original_create_swap_chain_fn = reinterpret_cast<create_swap_chain__t>(vtable[10]);
-                vtable[10] = reinterpret_cast<void*>(&create_swapchain_hook);
-                VirtualProtect(&vtable[10], sizeof(void*), old_protect, &old_protect);
+                //
+                // VirtualProtect(&vtable[10], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
+                // original_create_swap_chain_fn = reinterpret_cast<create_swap_chain__t>(vtable[10]);
+                // vtable[10] = reinterpret_cast<void*>(&create_swapchain_hook);
+                // VirtualProtect(&vtable[10], sizeof(void*), old_protect, &old_protect);
 
                 vtable = *reinterpret_cast<void***>(factory2.Get());
                 VirtualProtect(&vtable[15], sizeof(void*), PAGE_EXECUTE_READWRITE, &old_protect);
